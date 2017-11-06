@@ -10,6 +10,19 @@ def makeVersionedCodeDict(version):
     for desired_list in desired_lists:
         codelist = iati.default.codelist(desired_list,version)
         master_dict[desired_list] = {code.value:code.name for code in codelist.codes}
+    if version in ['1.04','1.05']:
+        master_dict["TransactionType"] = {
+            "QP":"Purchase of Equity"
+            ,"C":"Commitment"
+            ,"E":"Expenditure"
+            ,"D":"Disbursement"
+            ,"IR":"Interest Repayment"
+            ,"CG":"Credit Guarantee"
+            ,"QS":"Sale of Equity"
+            ,"R":"Reimbursement"
+            ,"LR":"Loan Repayment"
+            ,"IF":"Incoming Funds"
+        }
     return master_dict
 
 activities_raw = requests.get("http://datastore.iatistandard.org/api/1/access/activity.xml?limit=1000").content
