@@ -1,0 +1,46 @@
+Activity children:
+['sector' #*
+, 'activity-date' #*
+, 'default-tied-status'
+, 'recipient-country' #*
+, 'policy-marker'
+, 'result'
+, 'description' #*
+, 'title' #*
+, 'other-identifier'
+, 'location' #*
+, 'conditions'
+, 'reporting-org'
+, 'participating-org' #*
+, 'iati-identifier'
+, 'contact-info'
+, 'collaboration-type'
+, 'activity-scope'
+, 'transaction' #*
+, 'document-link'
+, <cyfunction Comment at 0x00000000037E26C0>
+, 'budget' #*
+, 'recipient-region' #*
+, 'activity-status' #*
+, 'default-flow-type'] #*
+
+Transaction children:
+['aid-type'
+, 'flow-type'
+, 'provider-org'
+, 'receiver-org'
+, 'disbursement-channel'
+, 'value'
+, 'finance-type'
+, 'tied-status'
+, 'transaction-date'
+, 'transaction-type'
+, 'description']
+
+Budget children:
+['period-end'
+, 'period-start'
+, 'value']
+
+Budget attribs:
+['type'] #Either '1' or '2'
