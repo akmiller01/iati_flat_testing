@@ -68,7 +68,10 @@ def flatten_datastore_url(url):
     bar = progressbar.ProgressBar()
     for i in bar(range(0,activity_len)):
         activity = activities.xml_tree.xpath('iati-activities/iati-activity[%s]' % (i + 1) )[0]
-        version = activity.attrib["{%s}version" % iati_extra]
+        try:
+            version = activity.attrib["{%s}version" % iati_extra]
+        except KeyError:
+            version = "2.01"
         
         try:
             vcd = make_versioned_code_dict(version)
@@ -91,7 +94,7 @@ def flatten_datastore_url(url):
             transactions = activity.findall("transaction")
             for transaction in transactions:
                 transaction_type_code = default_first(transaction.xpath("transaction-type/@code"))
-                transaction_type = vcd["TransactionType"][transaction_type_code] if transaction_type_code else None
+                transaction_type = recode_if_not_none(transaction_type_code,vcd["TransactionType"])
                 
                 transaction_date = default_first(transaction.xpath("transaction-date/@iso-date"))
                 
@@ -159,13 +162,13 @@ def flatten_datastore_url(url):
     
 if __name__ == '__main__':
     output = []
-    i = 0
+    i = 197000
     while output != 500:
         output = flatten_datastore_url("http://datastore.iatistandard.org/api/1/access/activity.xml?limit=1000&offset={}".format(i))
         if output != 500:
             data = pd.DataFrame(output)
-            data.columns = ["iati_version","transaction_type","transaction_date","currency","value","value_date","provider_activity_id","sector","recipient_country","recipient_region","flow_type_code","disbursement_channel","finance_type","aid_type_code","budget_or_transaction","budget_type"]
-            data.to_csv("test_output{}.csv".format(i),index=False,encoding="utf-8")
+            # data.columns = ["iati_version","transaction_type","transaction_date","currency","value","value_date","provider_activity_id","sector","recipient_country","recipient_region","flow_type_code","disbursement_channel","finance_type","aid_type_code","budget_or_transaction","budget_type"]
+            data.to_csv("C:/Users/Alex/Documents/Data/IATI/sep/flat{}.csv".format(i),index=False,header=False,encoding="utf-8")
             i += 1000
         print(i)
     #Reduce limit until we get a valid response
@@ -176,5 +179,5 @@ if __name__ == '__main__':
         print("Server error, reducing the limit to %s" % j)
     if j > 0:
         data = pd.DataFrame(output)
-        data.columns = ["iati_version","transaction_type","transaction_date","currency","value","value_date","provider_activity_id","sector","recipient_country","recipient_region","flow_type_code","disbursement_channel","finance_type","aid_type_code","budget_or_transaction","budget_type"]
-        data.to_csv("test_output{}.csv".format(i),index=False,encoding="utf-8")
+        # data.columns = ["iati_version","transaction_type","transaction_date","currency","value","value_date","provider_activity_id","sector","recipient_country","recipient_region","flow_type_code","disbursement_channel","finance_type","aid_type_code","budget_or_transaction","budget_type"]
+        data.to_csv("C:/Users/Alex/Documents/Data/IATI/sep/flat{}.csv".format(i),index=False,header=False,encoding="utf-8")
