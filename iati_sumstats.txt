@@ -1,0 +1,129 @@
+ 16  Variables      2999937  Observations
+--------------------------------------------------------------------------------
+iati_version 
+       n  missing distinct     Info     Mean      Gmd 
+ 2999937        0        7    0.886    1.623   0.4693 
+                                                                  
+Value         1.01    1.02    1.03    1.04    1.05    2.01    2.02
+Frequency    29653      71  349515  224648  599515 1400139  396396
+Proportion   0.010   0.000   0.117   0.075   0.200   0.467   0.132
+--------------------------------------------------------------------------------
+transaction_type 
+       n  missing distinct 
+ 1942389  1057548       29 
+
+lowest : $1.000.000         $3.000.000         $4.000.000         $5.000.000         $7.000.000        
+highest: Interest Repayment Loan Repayment     Purchase of Equity Reimbursement      Sale of Equity    
+--------------------------------------------------------------------------------
+transaction_date 
+       n  missing distinct 
+ 1889732  1110205     7051 
+
+lowest : 0001-01-01 1919-04-10 1955-02-11 1956-07-26 1958-02-01
+highest: 2021-01-01 2021-03-31 2022-03-14 2106-06-30 2107-09-30
+--------------------------------------------------------------------------------
+currency 
+       n  missing distinct 
+ 2999778      159      131 
+
+lowest : 0   100 101 103 108, highest: XOF YER ZAR ZMK ZMW
+--------------------------------------------------------------------------------
+value 
+         n    missing   distinct       Info       Mean        Gmd        .05 
+   2945233      54704     910398      0.994    1477959    2940028    -655.52 
+       .10        .25        .50        .75        .90        .95 
+      0.00       0.17   32643.00  333333.33 1666666.67 4000000.00 
+
+lowest : -1875000000 -1016188582 -1000000000  -977860000  -823389218
+highest: 10599165902 22666815036 23586774955 24919098564 38102151099
+--------------------------------------------------------------------------------
+value_date 
+       n  missing distinct 
+ 2980768    19169     7507 
+
+lowest : 0001-01-01 0015-08-01 0015-08-07 0015-08-15 0015-09-01
+highest: 2103-12-31 2106-06-30 2107-05-01 2425-03-07 3017-01-30
+--------------------------------------------------------------------------------
+provider_activity_id 
+       n  missing distinct 
+   92409  2907528    13277 
+
+lowest : '0000000252                                                                                          -                                                                                                    -HRF/ETH/3379/465                                                                                    (NL-KVK-41179943-)NLDOMFAN0012                                                                       [LOAN/CREDIT/GRANT] NO.P125125/ADDITIONAL PROJECT ID: 124729 CONTRACT NO FASE 520/12/UGEA/SC NAMPULA
+highest: YEMA/PCA/2012/020/NUT                                                                                YID7320ID                                                                                            YID7330PK                                                                                            YID7341KE                                                                                            YID7342KE                                                                                           
+--------------------------------------------------------------------------------
+sector 
+       n  missing distinct 
+ 2936823    63114      776 
+
+lowest : -999       0039       0049       0063       0065      
+highest: WW         WZ         YOUTH      ZAHUMHUMAN ZAHUMVZDEL
+--------------------------------------------------------------------------------
+recipient_country 
+       n  missing distinct 
+ 2425965   573972      428 
+
+lowest : -        #N/A     (blank)  1        100     
+highest: YV       ZAMBIA   ZIMBABWE ZR       ZRCD    
+--------------------------------------------------------------------------------
+recipient_region 
+       n  missing distinct 
+  983361  2016576       75 
+
+lowest : 0                                 089                               100                               1000002                           1000003                          
+highest: South of Sahara, regional         States Ex-Yugoslavia, unspecified UG-102                            UG-413                            West Indies, regional            
+--------------------------------------------------------------------------------
+flow_type_code 
+       n  missing distinct     Info     Mean      Gmd      .05      .10 
+ 1697102  1302835       11    0.407     15.1    9.469       10       10 
+     .25      .50      .75      .90      .95 
+      10       10       10       30       30 
+                                                          
+Value            0  200000  300000  590000  720000 1900000
+Frequency  1697096       1       2       1       1       1
+Proportion       1       0       0       0       0       0
+--------------------------------------------------------------------------------
+disbursement_channel 
+       n  missing distinct     Info     Mean      Gmd      .05      .10 
+  235038  2764899      138    0.818    632.1     1237        1        1 
+     .25      .50      .75      .90      .95 
+       1        1        2        3        3 
+
+lowest :     1     2     3     4 10000, highest: 61000 61002 62000 63002 90000
+--------------------------------------------------------------------------------
+finance_type 
+       n  missing distinct     Info     Mean      Gmd      .05      .10 
+  262156  2737781       20     0.63    199.8    126.4      110      110 
+     .25      .50      .75      .90      .95 
+     110      110      410      410      410 
+                                                                         
+Value           2    110    210    310    400    410    422    450    454
+Frequency       2 183901    220    135      8  76946     18     21      1
+Proportion  0.000  0.701  0.001  0.001  0.000  0.294  0.000  0.000  0.000
+                                                                  
+Value         500    510    512    520    610    614    616    912
+Frequency      10    279    261     26    315      1      8      4
+Proportion  0.000  0.001  0.001  0.000  0.001  0.000  0.000  0.000
+--------------------------------------------------------------------------------
+aid_type_code 
+       n  missing distinct 
+  191001  2808936       16 
+
+lowest : 110                                                                                                                2                                                                                                                  Administrative costs not included elsewhere                                                                        Basket funds/pooled funding                                                                                        Contributions to specific-purpose programmes and funds managed by international organisations (multilateral, INGO)
+highest: Other technical assistance                                                                                         Project-type interventions                                                                                         Refugees in donor countries                                                                                        Scholarships/training in donor country                                                                             Sector budget support                                                                                             
+--------------------------------------------------------------------------------
+budget_or_transaction 
+       n  missing distinct 
+ 2999937        0        2 
+                                  
+Value           Budget Transaction
+Frequency      1053720     1946217
+Proportion       0.351       0.649
+--------------------------------------------------------------------------------
+budget_type 
+       n  missing distinct     Info     Mean      Gmd 
+  637658  2362279        2    0.746    1.466   0.4976 
+                        
+Value           1      2
+Frequency  340807 296851
+Proportion  0.534  0.466
+--------------------------------------------------------------------------------
