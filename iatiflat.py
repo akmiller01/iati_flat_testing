@@ -4,6 +4,7 @@ import progressbar
 import pandas as pd
 from collections import defaultdict
 import pdb
+import math
 
 def default_first(array):
     #If an array isn't empty, give us the first element
@@ -50,6 +51,33 @@ def make_versioned_code_dict(version):
             ,"IF":"Incoming Funds"
         }
     return master_dict
+
+def validate_datastore_url(url):
+    conn = requests.get(url)
+    if conn.status_code!=200:
+        return 500
+    else:
+        return 200
+
+def recursiveSearch(curPos,lastPos,lastOutput):
+    output = validate_datastore_url("http://datastore.iatistandard.org/api/1/access/activity.xml?limit={}&offset={}".format(curPos,i))
+    delta = int(math.ceil(abs((curPos-lastPos)/2)))
+    #Stopped moving with valid output
+    if (curPos-lastPos)==0 and output!=500:
+        return curPos
+    #Last move was from invalid to valid with a delta of 1
+    elif lastOutput == 500 and output != 500 and abs(curPos-lastPos)==1:
+        return curPos
+    elif delta==0:
+        delta = 1
+    lastPos = curPos
+    print("Guess: {} is {}, moving by {}".format(curPos,output!=500,delta))
+    if output==500:
+        curPos -= delta
+        return recursiveSearch(curPos,lastPos,lastOutput)
+    else:
+        curPos += delta
+        return recursiveSearch(curPos,lastPos,lastOutput)
 
 def flatten_datastore_url(url):
     output = []
@@ -162,7 +190,7 @@ def flatten_datastore_url(url):
     
 if __name__ == '__main__':
     output = []
-    i = 197000
+    i = 418000
     while output != 500:
         output = flatten_datastore_url("http://datastore.iatistandard.org/api/1/access/activity.xml?limit=1000&offset={}".format(i))
         if output != 500:
@@ -170,14 +198,15 @@ if __name__ == '__main__':
             # data.columns = ["iati_version","transaction_type","transaction_date","currency","value","value_date","provider_activity_id","sector","recipient_country","recipient_region","flow_type_code","disbursement_channel","finance_type","aid_type_code","budget_or_transaction","budget_type"]
             data.to_csv("C:/Users/Alex/Documents/Data/IATI/sep/flat{}.csv".format(i),index=False,header=False,encoding="utf-8")
             i += 1000
-        print(i)
+            print(i)
     #Reduce limit until we get a valid response
-    j = 1000
-    while output == 500 and j > 0:
-        output = flatten_datastore_url("http://datastore.iatistandard.org/api/1/access/activity.xml?limit={}&offset={}".format(j,i))
-        j -= 1
-        print("Server error, reducing the limit to %s" % j)
-    if j > 0:
+    lastPos = 1000
+    curPos = lastPos/2
+    lastOutput = 500
+            
+    derivedMax = recursiveSearch(curPos,lastPos,lastOutput)
+    if derivedMax>0:
+        output = flatten_datastore_url("http://datastore.iatistandard.org/api/1/access/activity.xml?limit={}&offset={}".format(derivedMax,i))
         data = pd.DataFrame(output)
         # data.columns = ["iati_version","transaction_type","transaction_date","currency","value","value_date","provider_activity_id","sector","recipient_country","recipient_region","flow_type_code","disbursement_channel","finance_type","aid_type_code","budget_or_transaction","budget_type"]
         data.to_csv("C:/Users/Alex/Documents/Data/IATI/sep/flat{}.csv".format(i),index=False,header=False,encoding="utf-8")
