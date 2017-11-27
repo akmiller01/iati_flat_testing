@@ -6,6 +6,7 @@ from collections import defaultdict
 import pdb
 import math
 
+#Probably need to refactor this for multiple sectors, providers, etc.
 def default_first(array):
     #If an array isn't empty, give us the first element
     return array[0] if array else None
@@ -107,6 +108,19 @@ def flatten_datastore_url(url):
             continue
             
         child_tags = [child.tag for child in activity.getchildren()]
+        #participating orgs
+        funding_org_ref = None
+        funding_org_text = None
+        funding_org_type = None
+        if "participating-org" in child_tags:
+            participating_orgs = activity.findall("participating-org")
+            for p_org in participating_orgs:
+                p_org_role = default_first(p_org.xpath("@role"))
+                #Ignoring possibility of multiple funders
+                if p_org_role==1 or p_org_role=="Funding":
+                    funding_org_ref = default_first(p_org.xpath("@ref"))
+                    funding_org_text = default_first(p_org.xpath("text()"))
+                    funding_org_type = default_first(p_org.xpath("@type"))
         #Set up defaults?
         defaults = {}
         default_tags = ["default-currency","default-flow-type","recipient-country","recipient-region","sector"]
@@ -132,6 +146,15 @@ def flatten_datastore_url(url):
                 value = default_first(transaction.xpath("value/text()"))
                 value_date = default_first(transaction.xpath("value/@value-date"))
                 
+                transaction_provider_org_ref = default_first(transaction.xpath("provider-org/@ref"))
+                transaction_provider_org_text = default_first(transaction.xpath("provider-org/text()"))
+                transaction_provider_org_type = default_first(transaction.xpath("provider-org/@type"))
+                
+                #Introduce some sort of check here, to see if we've replaced one then we've replaced them all
+                provider_org_ref = replace_default_if_none(transaction_provider_org_ref,funding_org_ref)
+                provider_org_text = replace_default_if_none(transaction_provider_org_text,funding_org_text)
+                provider_org_type = replace_default_if_none(transaction_provider_org_type,funding_org_type)
+
                 provider_activity_id = default_first(transaction.xpath("provider-org/@provider-activity-id"))
                 
                 sector_code = default_first(transaction.xpath("sector/@code"))
@@ -159,7 +182,7 @@ def flatten_datastore_url(url):
                 aid_type_code = default_first(transaction.xpath("aid-type/@code"))
                 aid_type = recode_if_not_none(aid_type_code,vcd["AidType"])
                 
-                row = [version,transaction_type,transaction_date,currency,value,value_date,provider_activity_id,sector,recipient_country,recipient_region,flow_type_code,disbursement_channel_code,finance_type_code,aid_type,"Transaction",None]
+                row = [version,transaction_type,transaction_date,currency,value,value_date,provider_org_ref,provider_org_text,provider_org_type,provider_activity_id,sector,recipient_country,recipient_region,flow_type_code,disbursement_channel_code,finance_type_code,aid_type,"Transaction",None]
                 output.append(row)
             
             has_budget = "budget" in child_tags
@@ -175,6 +198,10 @@ def flatten_datastore_url(url):
                     currency = default_first(budget.xpath("value/@currency"))
                     currency = replace_default_if_none(currency,defaults["default-currency"])
                     
+                    provider_org_ref = funding_org_ref
+                    provider_org_text = funding_org_text
+                    provider_org_type = funding_org_type
+                    
                     sector_code = defaults["sector"]
                     sector = recode_if_not_none(sector_code,vcd["Sector"])
                     
@@ -184,18 +211,18 @@ def flatten_datastore_url(url):
                     recipient_region_code = defaults["recipient-region"]
                     recipient_region = recode_if_not_none(recipient_region_code,vcd["Region"])
             
-                    row = [version,None,None,currency,value,value_date,None,sector,recipient_country,recipient_region,None,None,None,None,"Budget",budget_type]
+                    row = [version,None,None,currency,value,value_date,provider_org_ref,provider_org_text,provider_org_type,None,sector,recipient_country,recipient_region,None,None,None,None,"Budget",budget_type]
                     output.append(row)
     return output
     
 if __name__ == '__main__':
     output = []
-    i = 418000
+    i = 0
     while output != 500:
         output = flatten_datastore_url("http://datastore.iatistandard.org/api/1/access/activity.xml?limit=1000&offset={}".format(i))
         if output != 500:
             data = pd.DataFrame(output)
-            # data.columns = ["iati_version","transaction_type","transaction_date","currency","value","value_date","provider_activity_id","sector","recipient_country","recipient_region","flow_type_code","disbursement_channel","finance_type","aid_type_code","budget_or_transaction","budget_type"]
+            # data.columns = ["iati_version","transaction_type","transaction_date","currency","value","value_date","provider_org_ref","provider_org_text","provider_org_type","provider_activity_id","sector","recipient_country","recipient_region","flow_type_code","disbursement_channel","finance_type","aid_type_code","budget_or_transaction","budget_type"]
             data.to_csv("C:/Users/Alex/Documents/Data/IATI/sep/flat{}.csv".format(i),index=False,header=False,encoding="utf-8")
             i += 1000
             print(i)
@@ -208,5 +235,5 @@ if __name__ == '__main__':
     if derivedMax>0:
         output = flatten_datastore_url("http://datastore.iatistandard.org/api/1/access/activity.xml?limit={}&offset={}".format(derivedMax,i))
         data = pd.DataFrame(output)
-        # data.columns = ["iati_version","transaction_type","transaction_date","currency","value","value_date","provider_activity_id","sector","recipient_country","recipient_region","flow_type_code","disbursement_channel","finance_type","aid_type_code","budget_or_transaction","budget_type"]
+        # data.columns = ["iati_version","transaction_type","transaction_date","currency","value","value_date","provider_org_ref","provider_org_text","provider_org_type","provider_activity_id","sector","recipient_country","recipient_region","flow_type_code","disbursement_channel","finance_type","aid_type_code","budget_or_transaction","budget_type"]
         data.to_csv("C:/Users/Alex/Documents/Data/IATI/sep/flat{}.csv".format(i),index=False,header=False,encoding="utf-8")
