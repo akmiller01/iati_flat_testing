@@ -9,7 +9,7 @@ from io import StringIO
 #Probably need to refactor this for multiple sectors, providers, etc.
 def default_first(array):
     #If an array isn't empty, give us the first element
-    return array[0] if array else None
+    return array[0] if array is not None and len(array)>0 else None
 
 def replace_default_if_none(value,default):
     if value is None:
@@ -108,7 +108,7 @@ def flatten_activities(root):
             short_description = None
         
         defaults = {}
-        default_tags = ["default-currency","default-finance-type","default-aid-type","default-flow-type","recipient-country","recipient-region","sector"]
+        default_tags = ["default-currency","default-finance-type","default-aid-type","default-flow-type"]
         for tag in default_tags:
             if tag in activity.attrib.keys():
                 defaults[tag] = activity.attrib[tag]
@@ -116,6 +116,55 @@ def flatten_activities(root):
                 defaults[tag] = default_first(activity.xpath("{}/@code".format(tag)))
             else:
                 defaults[tag] = None
+                
+        sector_sum = 0.0
+        country_sum = 0.0
+        region_sum = 0.0
+        
+        sectors = activity.findall("sector")
+        activity_sector_arr = []
+        for sector in sectors:
+            attribs = sector.attrib
+            attrib_keys = attribs.keys()
+            percentage = attribs['percentage'] if 'percentage' in attrib_keys else None
+            sector_sum += float(percentage) if percentage is not None else 0.0
+            code = attribs['code'] if 'code' in attrib_keys else None
+            vocabulary = attribs['vocabulary'] if 'vocabulary' in attrib_keys else None
+            if vocabulary is None or vocabulary in ["","1","2","DAC","DAC-3"]:
+                activity_sector_arr.append({"percentage":percentage,"code":code,"vocabulary":vocabulary})
+            
+        recipient_countries = activity.findall("recipient-country")
+        activity_recipient_country_arr = []
+        for recipient_country in recipient_countries:
+            attribs = recipient_country.attrib
+            attrib_keys = attribs.keys()
+            percentage = attribs['percentage'] if 'percentage' in attrib_keys else None
+            country_sum += float(percentage) if percentage is not None else 0.0
+            code = attribs['code'] if 'code' in attrib_keys else None
+            activity_recipient_country_arr.append({"percentage":percentage,"code":code})
+            
+        recipient_regions = activity.findall("recipient-region")
+        activity_recipient_region_arr = []
+        for recipient_region in recipient_regions:
+            attribs = recipient_region.attrib
+            attrib_keys = attribs.keys()
+            percentage = attribs['percentage'] if 'percentage' in attrib_keys else None
+            region_sum += float(percentage) if percentage is not None else 0.0
+            code = attribs['code'] if 'code' in attrib_keys else None
+            activity_recipient_region_arr.append({"percentage":percentage,"code":code})
+            
+        if len(activity_sector_arr)>1 or len(activity_recipient_country_arr)>1:
+            if (round(sector_sum)!=100.0 and round(sector_sum)!=0.0)  or (round(country_sum+region_sum)!=100.0 and round(country_sum+region_sum)!=0.0):
+                print("Sector sum: {}; Country sum: {}; Region sum: {}".format(sector_sum,country_sum,region_sum))
+                text = raw_input("Press Enter to continue...")
+                if text=="pdb":
+                    pdb.set_trace()
+            
+        #Temporary until we sort out sectors/recipients
+        defaults['recipient-country'] = activity_recipient_country_arr[0]['code'] if len(activity_recipient_country_arr)>0 else None
+        defaults['recipient-region'] = activity_recipient_region_arr[0]['code'] if len(activity_recipient_region_arr)>0 else None
+        defaults['sector-vocabulary'] = activity_sector_arr[0]['vocabulary'] if len(activity_sector_arr)>0 else None
+        defaults['sector'] = activity_sector_arr[0]['code'] if len(activity_sector_arr)>0 else None
         
         has_transactions = "transaction" in child_tags
         if has_transactions:
@@ -125,7 +174,7 @@ def flatten_activities(root):
                 # transaction_type = recode_if_not_none(transaction_type_code,vcd["TransactionType"])
                 
                 transaction_date = default_first(transaction.xpath("transaction-date/@iso-date"))
-                year = transaction_date[:4] if transaction_date else None
+                year = transaction_date[:4] if transaction_date is not None else None
                 
                 currency = default_first(transaction.xpath("value/@currency"))
                 currency = replace_default_if_none(currency,defaults["default-currency"])
@@ -135,6 +184,9 @@ def flatten_activities(root):
                 
                 sector_code = default_first(transaction.xpath("sector/@code"))
                 sector_code = replace_default_if_none(sector_code,defaults["sector"])
+                
+                sector_vocabulary = default_first(transaction.xpath("sector/@vocabulary"))
+                sector_vocabulary = replace_default_if_none(sector_vocabulary,defaults["sector-vocabulary"])
                 
                 # sector = recode_if_not_none(sector_code,vcd["Sector"])
                 
@@ -164,7 +216,7 @@ def flatten_activities(root):
                 budget_type = None
                 b_or_t = "Transaction"
                 
-                row = [version,iati_identifier,secondary_reporter,transaction_type_code,year,transaction_date,recipient_country_code,recipient_region_code,flow_type_code,category,finance_type_code,aid_type_code,currency,value,short_description,sector_code,channel_code,long_description,ftc,pba,b_or_t,budget_type]
+                row = [version,iati_identifier,secondary_reporter,transaction_type_code,year,transaction_date,recipient_country_code,recipient_region_code,flow_type_code,category,finance_type_code,aid_type_code,currency,value,short_description,sector_code,sector_vocabulary,channel_code,long_description,ftc,pba,b_or_t,budget_type]
                 output.append(row)
             
             has_budget = "budget" in child_tags
@@ -177,7 +229,7 @@ def flatten_activities(root):
                         budget_type = None
                         
                     transaction_date = default_first(budget.xpath("period-start/@iso-date"))
-                    year = transaction_date[:4] if transaction_date else None
+                    year = transaction_date[:4] if transaction_date is not None else None
                         
                     value = default_first(budget.xpath("value/text()"))
                     value_date = default_first(budget.xpath("value/@value-date"))
@@ -186,6 +238,8 @@ def flatten_activities(root):
                     
                     sector_code = defaults["sector"]
                     # sector = recode_if_not_none(sector_code,vcd["Sector"])
+                    
+                    sector_vocabulary = defaults["sector-vocabulary"]
                     
                     recipient_country_code = defaults["recipient-country"]
                     # recipient_country = recode_if_not_none(recipient_country_code,vcd["Country"])
@@ -203,13 +257,13 @@ def flatten_activities(root):
                     disbursement_channel_code = None
                     b_or_t = "Budget"
             
-                    row = [version,iati_identifier,secondary_reporter,transaction_type_code,year,transaction_date,recipient_country_code,recipient_region_code,flow_type_code,category,finance_type_code,aid_type_code,currency,value,short_description,sector_code,channel_code,long_description,ftc,pba,b_or_t,budget_type]
+                    row = [version,iati_identifier,secondary_reporter,transaction_type_code,year,transaction_date,recipient_country_code,recipient_region_code,flow_type_code,category,finance_type_code,aid_type_code,currency,value,short_description,sector_code,sector_vocabulary,channel_code,long_description,ftc,pba,b_or_t,budget_type]
                     output.append(row)
     return output
     
 if __name__ == '__main__':
     rootdir = 'C:/Users/Alex/Documents/Data/IATI-Registry-Refresher/data'
-    header = ["version","iati_identifier","secondary_reporter","transaction_type_code","year","transaction_date","recipient_country_code","recipient_region_code","flow_type_code","category","finance_type_code","aid_type_code","currency","value","short_description","sector_code","channel_code","long_description","ftc","pba","b_or_t","budget_type"]
+    header = ["version","iati_identifier","secondary_reporter","transaction_type_code","year","transaction_date","recipient_country_code","recipient_region_code","flow_type_code","category","finance_type_code","aid_type_code","currency","value","short_description","sector_code","sector_vocabulary","channel_code","long_description","ftc","pba","b_or_t","budget_type"]
     
     donor_code_lookup = {
         "af":"adaptation-fund"
@@ -278,7 +332,7 @@ if __name__ == '__main__':
         ,"worldbank":"ida"
     }
     #Remove this part if you don't want a header file
-    full_header = ["version","iati_identifier","secondary_reporter","transaction_type_code","year","transaction_date","recipient_country_code","recipient_region_code","flow_type_code","category","finance_type_code","aid_type_code","currency","value","short_description","sector_code","channel_code","long_description","ftc","pba","b_or_t","budget_type","publisher","donor_code"]
+    full_header = ["version","iati_identifier","secondary_reporter","transaction_type_code","year","transaction_date","recipient_country_code","recipient_region_code","flow_type_code","category","finance_type_code","aid_type_code","currency","value","short_description","sector_code","sector_vocabulary","channel_code","long_description","ftc","pba","b_or_t","budget_type","publisher","donor_code"]
     header_frame = pd.DataFrame([full_header])
     header_frame.to_csv("C:/Users/Alex/Documents/Data/IATI/sep/000header.csv",index=False,header=False,encoding="utf-8")
     
