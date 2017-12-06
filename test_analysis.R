@@ -42,6 +42,6 @@ write.csv(uni_recip,"recip_pub_tab.csv",row.names=FALSE,na="")
 describe(iati)
 
 recip_cross <- table(iati$len_activity_recipients,iati$len_transaction_recipients,useNA="ifany")
-write.csv(recip_cross,"C:/git/iati_flat_testing/recip_crosstab.csv",na="",row.names=FALSE)
+write.csv(recip_cross,"C:/git/iati_flat_testing/recip_crosstab.csv",na="")
 sector_cross <- table(iati$len_activity_sectors,iati$len_transaction_sectors,useNA="ifany")
-write.csv(sector_cross,"C:/git/iati_flat_testing/sector_crosstab.csv",na="",row.names=FALSE)
+write.csv(sector_cross,"C:/git/iati_flat_testing/sector_crosstab.csv",na="")
