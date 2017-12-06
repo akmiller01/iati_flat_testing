@@ -8,8 +8,7 @@ setwd(wd)
 iati <- read_csv("iati.csv")
 
 iati <- subset(iati,
-  (transaction_type_code %in% c("E","D",3,4)) & 
-  (sector_vocabulary %in% c(NA,"",1,2,"DAC","DAC-3"))
+  (transaction_type_code %in% c("E","D",3,4))
 )
 
 
@@ -39,3 +38,10 @@ write.csv(fco,"fco_currency.csv",row.names=FALSE,na="")
 
 uni_recip <- data.table(iati)[,.(count=sum(!is.na(iati_identifier))),by=.(publisher,recipient_country_code)]
 write.csv(uni_recip,"recip_pub_tab.csv",row.names=FALSE,na="")
+
+describe(iati)
+
+recip_cross <- table(iati$len_activity_recipients,iati$len_transaction_recipients,useNA="ifany")
+write.csv(recip_cross,"C:/git/iati_flat_testing/recip_crosstab.csv",na="",row.names=FALSE)
+sector_cross <- table(iati$len_activity_sectors,iati$len_transaction_sectors,useNA="ifany")
+write.csv(sector_cross,"C:/git/iati_flat_testing/sector_crosstab.csv",na="",row.names=FALSE)

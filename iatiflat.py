@@ -117,58 +117,84 @@ def flatten_activities(root):
             else:
                 defaults[tag] = None
                 
-        sector_sum = 0.0
-        country_sum = 0.0
-        region_sum = 0.0
+        activity_sector_percentage = 0.0
+        activity_recipient_percentage = 0.0
         
         sectors = activity.findall("sector")
-        activity_sector_arr = []
+        activity_sectors = {}
         for sector in sectors:
             attribs = sector.attrib
             attrib_keys = attribs.keys()
             percentage = attribs['percentage'] if 'percentage' in attrib_keys else None
-            sector_sum += float(percentage) if percentage is not None else 0.0
+            activity_sector_percentage += float(percentage) if percentage is not None else 0.0
             code = attribs['code'] if 'code' in attrib_keys else None
             vocabulary = attribs['vocabulary'] if 'vocabulary' in attrib_keys else None
             if vocabulary is None or vocabulary in ["","1","2","DAC","DAC-3"]:
-                activity_sector_arr.append({"percentage":percentage,"code":code,"vocabulary":vocabulary})
+                if code is not None:
+                    activity_sectors[code] = float(percentage) if percentage is not None else None
             
         recipient_countries = activity.findall("recipient-country")
-        activity_recipient_country_arr = []
+        activity_recipients = {}
         for recipient_country in recipient_countries:
             attribs = recipient_country.attrib
             attrib_keys = attribs.keys()
             percentage = attribs['percentage'] if 'percentage' in attrib_keys else None
-            country_sum += float(percentage) if percentage is not None else 0.0
+            activity_recipient_percentage += float(percentage) if percentage is not None else 0.0
             code = attribs['code'] if 'code' in attrib_keys else None
-            activity_recipient_country_arr.append({"percentage":percentage,"code":code})
+            if code is not None:
+                activity_recipients[code] = float(percentage) if percentage is not None else None
             
         recipient_regions = activity.findall("recipient-region")
-        activity_recipient_region_arr = []
         for recipient_region in recipient_regions:
             attribs = recipient_region.attrib
             attrib_keys = attribs.keys()
             percentage = attribs['percentage'] if 'percentage' in attrib_keys else None
-            region_sum += float(percentage) if percentage is not None else 0.0
+            activity_recipient_percentage += float(percentage) if percentage is not None else 0.0
             code = attribs['code'] if 'code' in attrib_keys else None
-            activity_recipient_region_arr.append({"percentage":percentage,"code":code})
-            
-        if len(activity_sector_arr)>1 or len(activity_recipient_country_arr)>1:
-            if (round(sector_sum)!=100.0 and round(sector_sum)!=0.0)  or (round(country_sum+region_sum)!=100.0 and round(country_sum+region_sum)!=0.0):
-                print("Sector sum: {}; Country sum: {}; Region sum: {}".format(sector_sum,country_sum,region_sum))
-                text = raw_input("Press Enter to continue...")
-                if text=="pdb":
-                    pdb.set_trace()
+            if code is not None:
+                activity_recipients[code] = float(percentage) if percentage is not None else None
             
         #Temporary until we sort out sectors/recipients
-        defaults['recipient-country'] = activity_recipient_country_arr[0]['code'] if len(activity_recipient_country_arr)>0 else None
-        defaults['recipient-region'] = activity_recipient_region_arr[0]['code'] if len(activity_recipient_region_arr)>0 else None
-        defaults['sector-vocabulary'] = activity_sector_arr[0]['vocabulary'] if len(activity_sector_arr)>0 else None
-        defaults['sector'] = activity_sector_arr[0]['code'] if len(activity_sector_arr)>0 else None
+        defaults['recipient'] = activity_recipients.keys()[0] if len(activity_recipients.keys())>0 else None
+        defaults['sector'] = activity_sectors.keys()[0] if len(activity_sectors.keys())>0 else None
         
         has_transactions = "transaction" in child_tags
         if has_transactions:
             transactions = activity.findall("transaction")
+            #Once through the transactions to find the sector sum, sector percents, recipient sum, recipient percents
+            transaction_value_sum = 0.0
+            transaction_sectors = {}
+            transaction_recipients = {}
+            for transaction in transactions:
+                sector_code = default_first(transaction.xpath("sector/@code"))
+                
+                recipient_country_code = default_first(transaction.xpath("recipient-country/@code"))
+                recipient_region_code = default_first(transaction.xpath("recipient-region/@code"))
+                
+                recipient_code = replace_default_if_none(recipient_country_code,recipient_region_code)
+                
+                value = default_first(transaction.xpath("value/text()"))
+                try:
+                    value = float(value.replace(" ", "")) if value is not None else None
+                except ValueError:
+                    value = None
+                
+                if value is not None:
+                    if sector_code is not None:
+                        transaction_sectors[sector_code] = value
+                    if recipient_code is not None:
+                        transaction_recipients[recipient_code] = value
+                    transaction_value_sum += value
+            
+            #Once we have the sum, we can calculate percents
+            if transaction_value_sum>0:
+                for sector_code in transaction_sectors:
+                    transaction_sectors[sector_code] = transaction_sectors[sector_code]/transaction_value_sum
+                    
+                for recipient_code in transaction_recipients:
+                    transaction_recipients[recipient_code] = transaction_recipients[recipient_code]/transaction_value_sum
+                    
+            #Another time through
             for transaction in transactions:
                 transaction_type_code = default_first(transaction.xpath("transaction-type/@code"))
                 # transaction_type = recode_if_not_none(transaction_type_code,vcd["TransactionType"])
@@ -185,18 +211,16 @@ def flatten_activities(root):
                 sector_code = default_first(transaction.xpath("sector/@code"))
                 sector_code = replace_default_if_none(sector_code,defaults["sector"])
                 
-                sector_vocabulary = default_first(transaction.xpath("sector/@vocabulary"))
-                sector_vocabulary = replace_default_if_none(sector_vocabulary,defaults["sector-vocabulary"])
+                # sector_vocabulary = default_first(transaction.xpath("sector/@vocabulary"))
                 
                 # sector = recode_if_not_none(sector_code,vcd["Sector"])
                 
-                recipient_country_code = default_first(transaction.xpath("recipient-country/@code"))
-                recipient_country_code = replace_default_if_none(recipient_country_code,defaults["recipient-country"])
+                recipient_code = default_first(transaction.xpath("recipient-country/@code"))
+                recipient_code = replace_default_if_none(recipient_code,defaults["recipient"])
     
                 # recipient_country = recode_if_not_none(recipient_country_code,vcd["Country"])
                 
-                recipient_region_code = default_first(transaction.xpath("recipient-region/@code"))
-                recipient_region_code = replace_default_if_none(recipient_region_code,defaults["recipient-region"])
+                # recipient_region_code = default_first(transaction.xpath("recipient-region/@code"))
     
                 # recipient_region = recode_if_not_none(recipient_region_code,vcd["Region"])
                 
@@ -216,7 +240,7 @@ def flatten_activities(root):
                 budget_type = None
                 b_or_t = "Transaction"
                 
-                row = [version,iati_identifier,secondary_reporter,transaction_type_code,year,transaction_date,recipient_country_code,recipient_region_code,flow_type_code,category,finance_type_code,aid_type_code,currency,value,short_description,sector_code,sector_vocabulary,channel_code,long_description,ftc,pba,b_or_t,budget_type]
+                row = [len(activity_sectors.keys()),activity_sector_percentage,len(activity_recipients.keys()),activity_recipient_percentage,len(transaction_sectors.keys()),len(transaction_recipients.keys()),version,iati_identifier,secondary_reporter,transaction_type_code,year,transaction_date,recipient_code,flow_type_code,category,finance_type_code,aid_type_code,currency,value,short_description,sector_code,channel_code,long_description,ftc,pba,b_or_t,budget_type]
                 output.append(row)
             
             has_budget = "budget" in child_tags
@@ -238,14 +262,10 @@ def flatten_activities(root):
                     
                     sector_code = defaults["sector"]
                     # sector = recode_if_not_none(sector_code,vcd["Sector"])
-                    
-                    sector_vocabulary = defaults["sector-vocabulary"]
-                    
-                    recipient_country_code = defaults["recipient-country"]
+                                        
+                    recipient_code = defaults["recipient"]
                     # recipient_country = recode_if_not_none(recipient_country_code,vcd["Country"])
                 
-                    recipient_region_code = defaults["recipient-region"]
-                    # recipient_region = recode_if_not_none(recipient_region_code,vcd["Region"])
                     
                     flow_type_code = defaults["default-flow-type"]
                     
@@ -257,13 +277,13 @@ def flatten_activities(root):
                     disbursement_channel_code = None
                     b_or_t = "Budget"
             
-                    row = [version,iati_identifier,secondary_reporter,transaction_type_code,year,transaction_date,recipient_country_code,recipient_region_code,flow_type_code,category,finance_type_code,aid_type_code,currency,value,short_description,sector_code,sector_vocabulary,channel_code,long_description,ftc,pba,b_or_t,budget_type]
+                    row = [len(activity_sectors.keys()),activity_sector_percentage,len(activity_recipients.keys()),activity_recipient_percentage,len(transaction_sectors.keys()),len(transaction_recipients.keys()),version,iati_identifier,secondary_reporter,transaction_type_code,year,transaction_date,recipient_code,flow_type_code,category,finance_type_code,aid_type_code,currency,value,short_description,sector_code,channel_code,long_description,ftc,pba,b_or_t,budget_type]
                     output.append(row)
     return output
     
 if __name__ == '__main__':
     rootdir = 'C:/Users/Alex/Documents/Data/IATI-Registry-Refresher/data'
-    header = ["version","iati_identifier","secondary_reporter","transaction_type_code","year","transaction_date","recipient_country_code","recipient_region_code","flow_type_code","category","finance_type_code","aid_type_code","currency","value","short_description","sector_code","sector_vocabulary","channel_code","long_description","ftc","pba","b_or_t","budget_type"]
+    header = ["len_activity_sectors","activity_sector_percentage","len_activity_recipients","activity_recipient_percentage","len_transaction_sectors","len_transaction_recipients","version","iati_identifier","secondary_reporter","transaction_type_code","year","transaction_date","recipient_code","flow_type_code","category","finance_type_code","aid_type_code","currency","value","short_description","sector_code","channel_code","long_description","ftc","pba","b_or_t","budget_type"]
     
     donor_code_lookup = {
         "af":"adaptation-fund"
@@ -332,7 +352,7 @@ if __name__ == '__main__':
         ,"worldbank":"ida"
     }
     #Remove this part if you don't want a header file
-    full_header = ["version","iati_identifier","secondary_reporter","transaction_type_code","year","transaction_date","recipient_country_code","recipient_region_code","flow_type_code","category","finance_type_code","aid_type_code","currency","value","short_description","sector_code","sector_vocabulary","channel_code","long_description","ftc","pba","b_or_t","budget_type","publisher","donor_code"]
+    full_header = ["len_activity_sectors","activity_sector_percentage","len_activity_recipients","activity_recipient_percentage","len_transaction_sectors","len_transaction_recipients","version","iati_identifier","secondary_reporter","transaction_type_code","year","transaction_date","recipient_code","flow_type_code","category","finance_type_code","aid_type_code","currency","value","short_description","sector_code","channel_code","long_description","ftc","pba","b_or_t","budget_type","publisher","donor_code"]
     header_frame = pd.DataFrame([full_header])
     header_frame.to_csv("C:/Users/Alex/Documents/Data/IATI/sep/000header.csv",index=False,header=False,encoding="utf-8")
     
