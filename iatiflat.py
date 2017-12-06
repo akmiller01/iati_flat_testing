@@ -194,6 +194,10 @@ def flatten_activities(root):
                 for recipient_code in transaction_recipients:
                     transaction_recipients[recipient_code] = transaction_recipients[recipient_code]/transaction_value_sum
                     
+            if (len(transaction_sectors.keys()) < len(activity_sectors.keys())) and len(transaction_sectors.keys())!=0:
+                pass
+                #Literally only UNFPA has more than one sector per transaction
+                    
             #Another time through
             for transaction in transactions:
                 transaction_type_code = default_first(transaction.xpath("transaction-type/@code"))
@@ -240,7 +244,7 @@ def flatten_activities(root):
                 budget_type = None
                 b_or_t = "Transaction"
                 
-                row = [len(activity_sectors.keys()),activity_sector_percentage,len(activity_recipients.keys()),activity_recipient_percentage,len(transaction_sectors.keys()),len(transaction_recipients.keys()),version,iati_identifier,secondary_reporter,transaction_type_code,year,transaction_date,recipient_code,flow_type_code,category,finance_type_code,aid_type_code,currency,value,short_description,sector_code,channel_code,long_description,ftc,pba,b_or_t,budget_type]
+                row = [version,iati_identifier,secondary_reporter,transaction_type_code,year,transaction_date,recipient_code,flow_type_code,category,finance_type_code,aid_type_code,currency,value,short_description,sector_code,channel_code,long_description,ftc,pba,b_or_t,budget_type]
                 output.append(row)
             
             has_budget = "budget" in child_tags
@@ -277,13 +281,13 @@ def flatten_activities(root):
                     disbursement_channel_code = None
                     b_or_t = "Budget"
             
-                    row = [len(activity_sectors.keys()),activity_sector_percentage,len(activity_recipients.keys()),activity_recipient_percentage,len(transaction_sectors.keys()),len(transaction_recipients.keys()),version,iati_identifier,secondary_reporter,transaction_type_code,year,transaction_date,recipient_code,flow_type_code,category,finance_type_code,aid_type_code,currency,value,short_description,sector_code,channel_code,long_description,ftc,pba,b_or_t,budget_type]
+                    row = [version,iati_identifier,secondary_reporter,transaction_type_code,year,transaction_date,recipient_code,flow_type_code,category,finance_type_code,aid_type_code,currency,value,short_description,sector_code,channel_code,long_description,ftc,pba,b_or_t,budget_type]
                     output.append(row)
     return output
     
 if __name__ == '__main__':
     rootdir = 'C:/Users/Alex/Documents/Data/IATI-Registry-Refresher/data'
-    header = ["len_activity_sectors","activity_sector_percentage","len_activity_recipients","activity_recipient_percentage","len_transaction_sectors","len_transaction_recipients","version","iati_identifier","secondary_reporter","transaction_type_code","year","transaction_date","recipient_code","flow_type_code","category","finance_type_code","aid_type_code","currency","value","short_description","sector_code","channel_code","long_description","ftc","pba","b_or_t","budget_type"]
+    header = ["version","iati_identifier","secondary_reporter","transaction_type_code","year","transaction_date","recipient_code","flow_type_code","category","finance_type_code","aid_type_code","currency","value","short_description","sector_code","channel_code","long_description","ftc","pba","b_or_t","budget_type"]
     
     donor_code_lookup = {
         "af":"adaptation-fund"
@@ -352,7 +356,7 @@ if __name__ == '__main__':
         ,"worldbank":"ida"
     }
     #Remove this part if you don't want a header file
-    full_header = ["len_activity_sectors","activity_sector_percentage","len_activity_recipients","activity_recipient_percentage","len_transaction_sectors","len_transaction_recipients","version","iati_identifier","secondary_reporter","transaction_type_code","year","transaction_date","recipient_code","flow_type_code","category","finance_type_code","aid_type_code","currency","value","short_description","sector_code","channel_code","long_description","ftc","pba","b_or_t","budget_type","publisher","donor_code"]
+    full_header = ["version","iati_identifier","secondary_reporter","transaction_type_code","year","transaction_date","recipient_code","flow_type_code","category","finance_type_code","aid_type_code","currency","value","short_description","sector_code","channel_code","long_description","ftc","pba","b_or_t","budget_type","publisher","donor_code"]
     header_frame = pd.DataFrame([full_header])
     header_frame.to_csv("C:/Users/Alex/Documents/Data/IATI/sep/000header.csv",index=False,header=False,encoding="utf-8")
     
@@ -361,7 +365,7 @@ if __name__ == '__main__':
             filepath = os.path.join(subdir,filename)
             publisher = os.path.basename(subdir)
             if publisher in donor_code_lookup.keys():
-            # if publisher in sorted(donor_code_lookup.keys())[25:]:
+            # if publisher in sorted(donor_code_lookup.keys())[57:]:
                 print filename
                 try:
                     root = etree.parse(filepath).getroot()
