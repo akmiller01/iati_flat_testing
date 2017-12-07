@@ -30,28 +30,28 @@ def recode_if_not_none(code,dictionary):
         except KeyError:
             return code
 
-def make_versioned_code_dict(version):
-    if version in ["1.01","1.02","1.03"]:
-        version = "1.04"
-    master_dict = {}
-    desired_lists = ["TransactionType","Currency","Sector","Country","Region","DisbursementChannel","FinanceType","AidType"]
-    for desired_list in desired_lists:
-        codelist = iati.default.codelist(desired_list,version)
-        master_dict[desired_list] = {code.value:code.name for code in codelist.codes}
-    if version in ['1.04','1.05']:
-        master_dict["TransactionType"] = {
-            "QP":"Purchase of Equity"
-            ,"C":"Commitment"
-            ,"E":"Expenditure"
-            ,"D":"Disbursement"
-            ,"IR":"Interest Repayment"
-            ,"CG":"Credit Guarantee"
-            ,"QS":"Sale of Equity"
-            ,"R":"Reimbursement"
-            ,"LR":"Loan Repayment"
-            ,"IF":"Incoming Funds"
-        }
-    return master_dict
+# def make_versioned_code_dict(version):
+#     if version in ["1.01","1.02","1.03"]:
+#         version = "1.04"
+#     master_dict = {}
+#     desired_lists = ["TransactionType","Currency","Sector","Country","Region","DisbursementChannel","FinanceType","AidType"]
+#     for desired_list in desired_lists:
+#         codelist = iati.default.codelist(desired_list,version)
+#         master_dict[desired_list] = {code.value:code.name for code in codelist.codes}
+#     if version in ['1.04','1.05']:
+#         master_dict["TransactionType"] = {
+#             "QP":"Purchase of Equity"
+#             ,"C":"Commitment"
+#             ,"E":"Expenditure"
+#             ,"D":"Disbursement"
+#             ,"IR":"Interest Repayment"
+#             ,"CG":"Credit Guarantee"
+#             ,"QS":"Sale of Equity"
+#             ,"R":"Reimbursement"
+#             ,"LR":"Loan Repayment"
+#             ,"IF":"Incoming Funds"
+#         }
+#     return master_dict
 
 def flatten_activities(root):
     output = []
@@ -75,6 +75,7 @@ def flatten_activities(root):
 
         secondary_reporter = default_first(activity.xpath("reporting-org/@secondary-reporter"))
         secondary_reporter = replace_default_if_none(secondary_reporter,"0")
+        
         #Set up defaults
                     
         channel_code = None
@@ -153,10 +154,21 @@ def flatten_activities(root):
             code = attribs['code'] if 'code' in attrib_keys else None
             if code is not None:
                 activity_recipients[code] = float(percentage) if percentage is not None else None
-            
-        #Temporary until we sort out sectors/recipients
-        defaults['recipient'] = activity_recipients.keys()[0] if len(activity_recipients.keys())>0 else None
-        defaults['sector'] = activity_sectors.keys()[0] if len(activity_sectors.keys())>0 else None
+                
+        #If percentages are greater than 100, rescale to 100. Also divide by 100 to make sure percentages run 0 to 1.00
+        activity_sector_percentage = max(activity_sector_percentage,100.0)
+        activity_recipient_percentage = max(activity_recipient_percentage,100.0)
+        
+        for activity_sector_code in activity_sectors:
+            activity_sectors[activity_sector_code] = (activity_sectors[activity_sector_code] / activity_sector_percentage) if (activity_sectors[activity_sector_code]) is not None else None
+            #Testing
+            if activity_sectors[activity_sector_code] > 1.1:
+                pdb.set_trace()
+        for activity_recipient_code in activity_recipients:
+            activity_recipients[activity_recipient_code] = (activity_recipients[activity_recipient_code] / activity_recipient_percentage) if (activity_recipients[activity_recipient_code]) is not None else None
+            #Testing
+            if activity_recipients[activity_recipient_code] > 1.1:
+                pdb.set_trace()
         
         has_transactions = "transaction" in child_tags
         if has_transactions:
@@ -185,23 +197,28 @@ def flatten_activities(root):
                     if recipient_code is not None:
                         transaction_recipients[recipient_code] = value
                     transaction_value_sum += value
+                    
+            #If we turned up valid sectors/recipients, don't use the activity-level ones
+            use_activity_sectors = len(transaction_sectors.keys())==0
+            use_activity_recipients = len(transaction_recipients.keys())==0
             
             #Once we have the sum, we can calculate percents
             if transaction_value_sum>0:
                 for sector_code in transaction_sectors:
                     transaction_sectors[sector_code] = transaction_sectors[sector_code]/transaction_value_sum
+                    #Testing
+                    if transaction_sectors[sector_code]>1.1:
+                        pdb.set_trace()
                     
                 for recipient_code in transaction_recipients:
                     transaction_recipients[recipient_code] = transaction_recipients[recipient_code]/transaction_value_sum
-                    
-            if (len(transaction_sectors.keys()) < len(activity_sectors.keys())) and len(transaction_sectors.keys())!=0:
-                pass
-                #Literally only UNFPA has more than one sector per transaction
+                    #Testing
+                    if transaction_recipients[recipient_code]>1.1:
+                        pdb.set_trace()
                     
             #Another time through
             for transaction in transactions:
                 transaction_type_code = default_first(transaction.xpath("transaction-type/@code"))
-                # transaction_type = recode_if_not_none(transaction_type_code,vcd["TransactionType"])
                 
                 transaction_date = default_first(transaction.xpath("transaction-date/@iso-date"))
                 year = transaction_date[:4] if transaction_date is not None else None
@@ -210,23 +227,16 @@ def flatten_activities(root):
                 currency = replace_default_if_none(currency,defaults["default-currency"])
     
                 value = default_first(transaction.xpath("value/text()"))
+                try:
+                    value = float(value.replace(" ", "")) if value is not None else None
+                except ValueError:
+                    value = None
                 value_date = default_first(transaction.xpath("value/@value-date"))
                 
-                sector_code = default_first(transaction.xpath("sector/@code"))
-                sector_code = replace_default_if_none(sector_code,defaults["sector"])
-                
-                # sector_vocabulary = default_first(transaction.xpath("sector/@vocabulary"))
-                
-                # sector = recode_if_not_none(sector_code,vcd["Sector"])
+                sector_code = default_first(transaction.xpath("sector/@code"))                
                 
                 recipient_code = default_first(transaction.xpath("recipient-country/@code"))
-                recipient_code = replace_default_if_none(recipient_code,defaults["recipient"])
-    
-                # recipient_country = recode_if_not_none(recipient_country_code,vcd["Country"])
-                
-                # recipient_region_code = default_first(transaction.xpath("recipient-region/@code"))
-    
-                # recipient_region = recode_if_not_none(recipient_region_code,vcd["Region"])
+                recipient_code = replace_default_if_none(recipient_code,default_first(transaction.xpath("recipient-region/@code")))
                 
                 flow_type_code = default_first(transaction.xpath("flow-type/@code"))
                 flow_type_code = replace_default_if_none(flow_type_code,defaults["default-flow-type"])
@@ -238,14 +248,41 @@ def flatten_activities(root):
                 
                 aid_type_code = default_first(transaction.xpath("aid-type/@code"))
                 aid_type_code = replace_default_if_none(aid_type_code,defaults["default-aid-type"])
-                # aid_type = recode_if_not_none(aid_type_code,vcd["AidType"])
                 
                 category = None
                 budget_type = None
                 b_or_t = "Transaction"
                 
-                row = [version,iati_identifier,secondary_reporter,transaction_type_code,year,transaction_date,recipient_code,flow_type_code,category,finance_type_code,aid_type_code,currency,value,short_description,sector_code,channel_code,long_description,ftc,pba,b_or_t,budget_type]
-                output.append(row)
+                if value is not None:
+                    if use_activity_recipients:
+                        if use_activity_sectors:
+                            #Activity recipients and sectors
+                            for activity_recipient_code in activity_recipients.keys():
+                                activity_recipient_percentage = activity_recipients[activity_recipient_code]
+                                for activity_sector_code in activity_sectors.keys():
+                                    activity_sector_percentage = activity_sectors[activity_sector_code]
+                                    calculated_value = value*activity_recipient_percentage*activity_sector_percentage if (activity_recipient_percentage is not None and activity_sector_percentage is not None) else None
+                                    row = [version,iati_identifier,secondary_reporter,transaction_type_code,year,transaction_date,activity_recipient_code,flow_type_code,category,finance_type_code,aid_type_code,currency,calculated_value,short_description,activity_sector_code,channel_code,long_description,ftc,pba,b_or_t,budget_type]
+                                    output.append(row)
+                        else:
+                            #Just activity recipients
+                            for activity_recipient_code in activity_recipients.keys():
+                                activity_recipient_percentage = activity_recipients[activity_recipient_code]
+                                calculated_value = value*activity_recipient_percentage if (activity_recipient_percentage is not None) else None
+                                row = [version,iati_identifier,secondary_reporter,transaction_type_code,year,transaction_date,activity_recipient_code,flow_type_code,category,finance_type_code,aid_type_code,currency,calculated_value,short_description,sector_code,channel_code,long_description,ftc,pba,b_or_t,budget_type]
+                                output.append(row)
+                    else:
+                        if use_activity_sectors:
+                            #Just activity sectors
+                            for activity_sector_code in activity_sectors.keys():
+                                activity_sector_percentage = activity_sectors[activity_sector_code]
+                                calculated_value = value*activity_sector_percentage if (activity_sector_percentage is not None) else None
+                                row = [version,iati_identifier,secondary_reporter,transaction_type_code,year,transaction_date,recipient_code,flow_type_code,category,finance_type_code,aid_type_code,currency,calculated_value,short_description,activity_sector_code,channel_code,long_description,ftc,pba,b_or_t,budget_type]
+                                output.append(row)
+                        else:
+                            #Neither activity recipients nor sectors
+                            row = [version,iati_identifier,secondary_reporter,transaction_type_code,year,transaction_date,recipient_code,flow_type_code,category,finance_type_code,aid_type_code,currency,value,short_description,sector_code,channel_code,long_description,ftc,pba,b_or_t,budget_type]
+                            output.append(row)
             
             has_budget = "budget" in child_tags
             if has_budget:
@@ -260,16 +297,13 @@ def flatten_activities(root):
                     year = transaction_date[:4] if transaction_date is not None else None
                         
                     value = default_first(budget.xpath("value/text()"))
+                    try:
+                        value = float(value.replace(" ", "")) if value is not None else None
+                    except ValueError:
+                        value = None
                     value_date = default_first(budget.xpath("value/@value-date"))
                     currency = default_first(budget.xpath("value/@currency"))
                     currency = replace_default_if_none(currency,defaults["default-currency"])
-                    
-                    sector_code = defaults["sector"]
-                    # sector = recode_if_not_none(sector_code,vcd["Sector"])
-                                        
-                    recipient_code = defaults["recipient"]
-                    # recipient_country = recode_if_not_none(recipient_country_code,vcd["Country"])
-                
                     
                     flow_type_code = defaults["default-flow-type"]
                     
@@ -281,8 +315,46 @@ def flatten_activities(root):
                     disbursement_channel_code = None
                     b_or_t = "Budget"
             
-                    row = [version,iati_identifier,secondary_reporter,transaction_type_code,year,transaction_date,recipient_code,flow_type_code,category,finance_type_code,aid_type_code,currency,value,short_description,sector_code,channel_code,long_description,ftc,pba,b_or_t,budget_type]
-                    output.append(row)
+                    
+                    if value is not None:
+                        if use_activity_recipients:
+                            if use_activity_sectors:
+                                #Activity recipients and sectors
+                                for activity_recipient_code in activity_recipients.keys():
+                                    activity_recipient_percentage = activity_recipients[activity_recipient_code]
+                                    for activity_sector_code in activity_sectors.keys():
+                                        activity_sector_percentage = activity_sectors[activity_sector_code]
+                                        calculated_value = value*activity_recipient_percentage*activity_sector_percentage if (activity_recipient_percentage is not None and activity_sector_percentage is not None) else None
+                                        row = [version,iati_identifier,secondary_reporter,transaction_type_code,year,transaction_date,activity_recipient_code,flow_type_code,category,finance_type_code,aid_type_code,currency,calculated_value,short_description,activity_sector_code,channel_code,long_description,ftc,pba,b_or_t,budget_type]
+                                        output.append(row)
+                            else:
+                                #Just activity recipients
+                                for activity_recipient_code in activity_recipients.keys():
+                                    activity_recipient_percentage = activity_recipients[activity_recipient_code]
+                                    for transaction_sector_code in transaction_sectors.keys():
+                                        transaction_sector_percentage = transaction_sectors[transaction_sector_code]
+                                        calculated_value = value*activity_recipient_percentage*transaction_sector_percentage if (activity_recipient_percentage is not None and transaction_sector_percentage is not None) else None
+                                        row = [version,iati_identifier,secondary_reporter,transaction_type_code,year,transaction_date,activity_recipient_code,flow_type_code,category,finance_type_code,aid_type_code,currency,calculated_value,short_description,transaction_sector_code,channel_code,long_description,ftc,pba,b_or_t,budget_type]
+                                        output.append(row)
+                        else:
+                            if use_activity_sectors:
+                                #Just activity sectors
+                                for transaction_recipient_code in transaction_recipients.keys():
+                                    transaction_recipient_percentage = transaction_recipients[transaction_recipient_code]
+                                    for activity_sector_code in activity_sectors.keys():
+                                        activity_sector_percentage = activity_sectors[activity_sector_code]
+                                        calculated_value = value*transaction_recipient_percentage*activity_sector_percentage if (transaction_recipient_percentage is not None and activity_sector_percentage is not None) else None
+                                        row = [version,iati_identifier,secondary_reporter,transaction_type_code,year,transaction_date,transaction_recipient_code,flow_type_code,category,finance_type_code,aid_type_code,currency,calculated_value,short_description,activity_sector_code,channel_code,long_description,ftc,pba,b_or_t,budget_type]
+                                        output.append(row)
+                            else:
+                                #Neither activity recipients nor sectors
+                                for transaction_recipient_code in transaction_recipients.keys():
+                                    transaction_recipient_percentage = transaction_recipients[transaction_recipient_code]
+                                    for transaction_sector_code in transaction_sectors.keys():
+                                        transaction_sector_percentage = transaction_sectors[transaction_sector_code]
+                                        calculated_value = value*transaction_recipient_percentage*transaction_sector_percentage if (transaction_recipient_percentage is not None and transaction_sector_percentage is not None) else None
+                                        row = [version,iati_identifier,secondary_reporter,transaction_type_code,year,transaction_date,transaction_recipient_code,flow_type_code,category,finance_type_code,aid_type_code,currency,calculated_value,short_description,transaction_sector_code,channel_code,long_description,ftc,pba,b_or_t,budget_type]
+                                        output.append(row)
     return output
     
 if __name__ == '__main__':
