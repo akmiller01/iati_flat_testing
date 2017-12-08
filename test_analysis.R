@@ -56,4 +56,4 @@ write.csv(uni_recip,"recip_pub_tab.csv",row.names=FALSE,na="")
 
 sink("iati_sumstats.txt")
 describe(iati)
-dev.off()
+closeAllConnections() 

@@ -298,6 +298,7 @@ def flatten_activities(root):
             if has_budget:
                 budgets = activity.findall("budget")
                 for budget in budgets:
+                    transaction_type_code = None
                     if "type" in budget.attrib.keys():
                         budget_type = budget.attrib["type"]
                     else:
