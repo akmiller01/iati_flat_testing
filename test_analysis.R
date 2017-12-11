@@ -16,10 +16,11 @@ setwd(wd)
 
 iati <- read_csv("iati.csv")
 
-iati <- subset(iati,
-  (!is.na(sector_code))
-  & (!is.na(recipient_code))
-)
+# iati <- subset(iati,
+#   (!is.na(sector))
+#   & (!is.na(recipient_code))
+#   
+# )
 
 # iati_sum <- sum(iati$value,na.rm=TRUE)
 # 
@@ -51,7 +52,7 @@ saveWorkbook(wb,file="iati_freq.xlsx",overwrite=TRUE)
 rand.samp <- data.table(iati)[sample(.N,5000)]
 write.csv(rand.samp,"sample5000.csv",row.names=FALSE,na="")
 
-uni_recip <- data.table(iati)[,.(count=sum(!is.na(iati_identifier))),by=.(publisher,recipient_code)]
+uni_recip <- data.table(iati)[,.(count=sum(!is.na(iati_identifier))),by=.(donor_code,recipient_code)]
 write.csv(uni_recip,"recip_pub_tab.csv",row.names=FALSE,na="")
 
 sink("iati_sumstats.txt")

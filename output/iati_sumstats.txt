@@ -1,206 +1,131 @@
 iati 
 
- 23  Variables      3562906  Observations
-------------------------------------------------
-version 
-       n  missing distinct     Info     Mean 
- 3562906        0        7    0.916    1.661 
-     Gmd 
-  0.4528 
-                                          
-Value         1.00    1.02    1.03    1.04
-Frequency     7882       6  383710     253
-Proportion   0.002   0.000   0.108   0.000
-                                  
-Value         1.05    2.01    2.02
-Frequency   906186 1255883 1008986
-Proportion   0.254   0.352   0.283
-------------------------------------------------
-iati_identifier 
-       n  missing distinct 
- 3562906        0   413321 
-
-lowest : 034006                                  075004                                  075006                                  075008                                  085001                                 
-highest: XM-DAC-928-ZW-2016-17-06.004.AF01.ZWE04 XM-DAC-928-ZW-2016-17-12.002.AF01.ZWE01 XM-DAC-928-ZW-2016-17-12.002.AF01.ZWE02 XM-DAC-928-ZW-2016-17-12.004.AF01.ZWE01 XM-DAC-928-ZW-2016-17-12.005.AF01.ZWE01
-------------------------------------------------
-secondary_reporter 
-       n  missing distinct     Info     Mean 
- 3307978   254928        1        0        0 
-     Gmd 
-       0 
-                  
-Value            0
-Frequency  3307978
-Proportion       1
-------------------------------------------------
-transaction_type_code 
-       n  missing distinct 
- 2081651  1481255        4 
-                                          
-Value            3       4       D       E
-Frequency  1127608  501812  416526   35705
-Proportion   0.542   0.241   0.200   0.017
-------------------------------------------------
+ 18  Variables      3757033  Observations
+-----------------------------------------------------------------------------------------------------------------------------
 year 
-       n  missing distinct     Info     Mean 
- 3510415    52491       46    0.991     2013 
-     Gmd      .05      .10      .25      .50 
-   3.972     2006     2008     2011     2014 
-     .75      .90      .95 
-    2016     2017     2018 
+       n  missing distinct     Info     Mean      Gmd      .05      .10      .25      .50      .75      .90      .95 
+ 3525352   231681       46    0.991     2013    3.966     2007     2008     2011     2014     2016     2017     2018 
 
-lowest : 1981 1982 1983 1984 1985
-highest: 2022 2023 2024 2025 2026
-------------------------------------------------
-transaction_date 
-       n  missing distinct 
- 3510415    52491     6162 
-
-lowest : 1981-01-01 1981-02-11 1982-01-01 1982-02-05 1982-12-03
-highest: 2026-04-01 2026-05-01 2026-06-01 2026-07-01 2026-10-01
-------------------------------------------------
+lowest : 1981 1982 1983 1984 1985, highest: 2022 2023 2024 2025 2026
+-----------------------------------------------------------------------------------------------------------------------------
 recipient_code 
        n  missing distinct 
- 3562906        0      472 
+ 3632938   124095      204 
 
-lowest : 0    001  088  089  100 
-highest: ZA   ZM   ZRCD ZW   ZZ  
-------------------------------------------------
-flow_type_code 
-       n  missing distinct     Info     Mean 
- 2682345   880561        7    0.133    10.72 
-     Gmd 
-    1.38 
-                                          
-Value           -9      10      20      30
-Frequency        4 2557613   77988   36460
-Proportion   0.000   0.953   0.029   0.014
-                                  
-Value           35      40      50
-Frequency      154       1   10125
-Proportion   0.000   0.000   0.004
-------------------------------------------------
-finance_type_code 
-       n  missing distinct     Info     Mean 
- 2709298   853608       32    0.191    127.8 
-     Gmd      .05      .10      .25      .50 
-   33.75      110      110      110      110 
-     .75      .90      .95 
-     110      110      410 
+lowest : AE     AF     africa AG     AI    , highest: YE     YT     ZA     ZM     ZW    
+-----------------------------------------------------------------------------------------------------------------------------
+flow_code 
+       n  missing distinct     Info     Mean      Gmd 
+ 2875788   881245        7    0.125    10.67    1.295 
+                                                                  
+Value           -9      10      20      30      35      40      50
+Frequency        4 2750452   78522   36490     154       1   10165
+Proportion   0.000   0.956   0.027   0.013   0.000   0.000   0.004
+-----------------------------------------------------------------------------------------------------------------------------
+finance_type 
+       n  missing distinct     Info     Mean      Gmd      .05      .10      .25      .50      .75      .90      .95 
+ 2903041   853992       32     0.18    126.6    31.68      110      110      110      110      110      110      410 
 
-lowest :    0  100  110  111  210
-highest:  633  710  910  911 1100
-------------------------------------------------
-aid_type_code 
+lowest :    0  100  110  111  210, highest:  633  710  910  911 1100
+-----------------------------------------------------------------------------------------------------------------------------
+aid_type 
        n  missing distinct 
- 3501573    61333       42 
+ 3689536    67497       42 
 
 lowest : 2   A   A01 A02 ADM, highest: PDA PGM PRJ TCO ZZZ
-------------------------------------------------
-currency 
-       n  missing distinct 
- 3557453     5453      554 
-
-lowest : 100610 100785 100797 100837 10085 
-highest: JPY    NOK    NZD    USD    XDR   
-------------------------------------------------
-value 
-        n   missing  distinct      Info 
-  3365048    197858   1280532         1 
-     Mean       Gmd       .05       .10 
-   113721   6570410       3.0     464.8 
-      .25       .50       .75       .90 
-   6632.8   50000.0  262786.5 1031915.5 
+-----------------------------------------------------------------------------------------------------------------------------
+usd_disbursement 
+        n   missing  distinct      Info      Mean       Gmd       .05       .10       .25       .50       .75       .90 
+  3495328    261705   1619203         1   -928198   4531679 4.866e+00 4.357e+02 6.527e+03 5.102e+04 2.637e+05 9.900e+05 
       .95 
-2400000.0 
-
--6.6e+11 (1, 0), -6.5e+11 (3, 0), -6.4e+11 (1,
-0), -4.4e+11 (1, 0), -3.7e+11 (3, 0), -1.9e+11
-(1, 0), -8e+10 (1, 0), -7e+10 (1, 0), -2e+10
-(5, 0), -1e+10 (15, 0), 0 (3364897, 1), 1e+10
-(90, 0), 2e+10 (20, 0), 3e+10 (4, 0), 5e+10 (1,
-0), 6e+10 (2, 0), 2e+11 (2, 0)
-------------------------------------------------
+2.160e+06 
+                                                                                                                        
+Value      -6.55e+11 -6.50e+11 -6.45e+11 -6.35e+11 -4.40e+11 -3.70e+11 -1.90e+11 -8.00e+10 -7.00e+10 -6.50e+10 -3.50e+10
+Frequency          2         1         1         1         1         3         1         1         1         2         2
+Proportion         0         0         0         0         0         0         0         0         0         0         0
+                                                                                
+Value      -2.50e+10 -2.00e+10 -1.50e+10 -1.00e+10 -5.00e+09  0.00e+00  5.00e+09
+Frequency          1         4         4        10        11   3495280         2
+Proportion         0         0         0         0         0         1         0
+-----------------------------------------------------------------------------------------------------------------------------
 short_description 
        n  missing distinct 
- 3562215      691   228347 
+ 3756342      691   230278 
 
 lowest : '                                                                                                                                                                                           '''Nosotros los nios y las nias estamos aqu''. Reconocimiento del lugar de nios y las nias pequeos en la vida social, en una comunidad semi-rural del Perú.                                 '' Bienvenidos! Turismo rural, polticas públicas locales y sostenibilidad; un proceso de concertación-acción entre actores locales para combatir la pobreza en 4 departamentos de Bolivia." '' Desde los 20 aos de la convenciòn de los derechos del nio''                                                                                                                              '' Dialogue culturel Syrie-Europe                                                                                                                                                          
 highest: ZWE.S1 Leadership, advocacy and communication to fast track the AIDS response                                                                                                               ZWE.S3 Strategic information for an evidence informed response and global political agenda                                                                                                  ZWE.S4 Coordination, coherence and convening                                                                                                                                                ZWE.S5 Mutual accountability                                                                                                                                                                Zweiter 138 kV-Ring Santo Domingo                                                                                                                                                          
-------------------------------------------------
-sector_code 
-       n  missing distinct     Info     Mean 
- 3562906        0      376        1    27315 
-     Gmd      .05      .10      .25      .50 
-   21716    11120    11330    13030    15220 
-     .75      .90      .95 
-   32130    72010    91010 
+-----------------------------------------------------------------------------------------------------------------------------
+purpose_code 
+       n  missing distinct     Info     Mean      Gmd      .05      .10      .25      .50      .75      .90      .95 
+ 3593467   163566       65    0.995    281.7    217.7      112      114      130      160      321      720      910 
 
-lowest :   -999     10    110    111    112
-highest:  99810  99820 111010 111120 121110
-------------------------------------------------
+lowest : -99  10 100 110 111, highest: 900 910 920 930 998
+-----------------------------------------------------------------------------------------------------------------------------
+sector_code 
+       n  missing distinct     Info     Mean      Gmd      .05      .10      .25      .50      .75      .90      .95 
+ 3593466   163567      376        1    27362    21783    11120    11330    13030    15220    32130    72010    91010 
+
+lowest :   -999     10    110    111    112, highest:  99810  99820 111010 111120 121110
+-----------------------------------------------------------------------------------------------------------------------------
 channel_code 
        n  missing distinct 
-   24725  3538181       55 
+   24774  3732259       55 
 
-lowest : 10000 11000 11001 11002 11004
-highest: 50000 51000 52000 61000 62000
-------------------------------------------------
+lowest : 10000 11000 11001 11002 11004, highest: 50000 51000 52000 61000 62000
+-----------------------------------------------------------------------------------------------------------------------------
 long_description 
        n  missing distinct 
- 3396129   166777   227569 
+ 3589932   167101   229608 
 
 lowest : '' Bienvenidos! Turismo rural, polticas públicas locales y sostenibilidad; un proceso de concertación-acción entre actores locales para combatir la pobreza en 4 departamentos de Bolivia."                          '' Desde los 20 aos de la convenciòn de los derechos del nio''                                                                                                                                                       '' Dignité: Respect des droits des personnes privées de liberté''.                                                                                                                                                   '' Médiatisation du 17ème Festival européen en Algérie''.                                                                                                                                                            '' Promoción de la participación de las personas con discapacidad visual en los procesos de desarrollo económico y social."                                                                                         
 highest: Zuschüsse zu Transportkosten in Entwicklungsländer 2014                                                                                                                                                              Zuständige nationale Ministerien, regionale Verwaltungen, Privatsektor und Zivilgesellschaft haben Maßnahmen zum Umweltmanagement und zurAnpassung an den Klimawandel in ausgewählten Regionen abgestimmt umgesetzt. Zuwendung aus Kap 23 02 Tit 685 01 (Betrieb) institutionelle Förderung der EngGlobal zur Förd. des bürgerschaftl. und kommunalen Engagements in der EZ                                                               Zuwendung aus Kap 2302 Tit 894 01 (Investitionen) inst Förderung der Engagement Global zur Förd des bürgerschaftl und kommunalen Engagements in der EZ                                                               Zweiter 138 kV-Ring Santo Domingo                                                                                                                                                                                   
-------------------------------------------------
+-----------------------------------------------------------------------------------------------------------------------------
 ftc 
        n  missing distinct 
- 3562906        0        2 
+ 3757033        0        2 
                           
 Value        False    True
-Frequency  3439854  123052
-Proportion   0.965   0.035
-------------------------------------------------
+Frequency  3633981  123052
+Proportion   0.967   0.033
+-----------------------------------------------------------------------------------------------------------------------------
 pba 
        n  missing distinct 
- 3562906        0        2 
+ 3757033        0        2 
                           
 Value        False    True
-Frequency  3417050  145856
-Proportion   0.959   0.041
-------------------------------------------------
-b_or_t 
+Frequency  3611128  145905
+Proportion   0.961   0.039
+-----------------------------------------------------------------------------------------------------------------------------
+budget_or_transaction 
        n  missing distinct 
- 3562906        0        2 
+ 3757033        0        2 
                                   
 Value           Budget Transaction
-Frequency      1481255     2081651
-Proportion       0.416       0.584
-------------------------------------------------
+Frequency      1488424     2268609
+Proportion       0.396       0.604
+-----------------------------------------------------------------------------------------------------------------------------
 budget_type 
-       n  missing distinct     Info     Mean 
- 1333224  2229682        2    0.746    1.536 
-     Gmd 
-  0.4974 
+       n  missing distinct     Info     Mean      Gmd 
+ 1339991  2417042        2    0.746    1.538   0.4972 
                         
 Value           1      2
-Frequency  618288 714936
-Proportion  0.464  0.536
-------------------------------------------------
-publisher 
+Frequency  619432 720559
+Proportion  0.462  0.538
+-----------------------------------------------------------------------------------------------------------------------------
+iati_identifier 
        n  missing distinct 
- 3562906        0       51 
+ 3757033        0   416763 
 
-lowest : af           afd          afdb         aics         asdb        
-highest: unitedstates usaid        wfp          who          worldbank   
-------------------------------------------------
+lowest : 034006                                  075004                                  075006                                  075008                                  085001                                 
+highest: XM-DAC-928-ZW-2016-17-06.004.AF01.ZWE04 XM-DAC-928-ZW-2016-17-12.002.AF01.ZWE01 XM-DAC-928-ZW-2016-17-12.002.AF01.ZWE02 XM-DAC-928-ZW-2016-17-12.004.AF01.ZWE01 XM-DAC-928-ZW-2016-17-12.005.AF01.ZWE01
+-----------------------------------------------------------------------------------------------------------------------------
 donor_code 
        n  missing distinct 
- 3562906        0       38 
+ 3757033        0       38 
 
 lowest : adaptation-fund afdb            asdb            AU              BE             
 highest: unfpa           unicef          US              wfp             who            
-------------------------------------------------
+-----------------------------------------------------------------------------------------------------------------------------
 
 Variables with all observations missing:
 
