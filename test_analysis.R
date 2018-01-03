@@ -57,4 +57,23 @@ write.csv(uni_recip,"recip_pub_tab.csv",row.names=FALSE,na="")
 
 sink("iati_sumstats.txt")
 describe(iati)
-closeAllConnections() 
+closeAllConnections()
+
+wd <- "C:/Users/Alex/Documents/Data/IATI/"
+setwd(wd)
+
+iati_filtered <- subset(iati,
+    !(is.na(year))
+    & !(is.na(usd_disbursement))
+)
+write_csv(iati_filtered,"iati_unfiltered.csv",na="")
+
+iati2016 <- subset(iati,year==2016)
+iati2017 <- subset(iati,year==2017)
+iati2018 <- subset(iati,year==2018)
+write_csv(iati2016,"iati2016.csv",na="")
+write_csv(iati2017,"iati2017.csv",na="")
+write_csv(iati2018,"iati2018.csv",na="")
+
+iatigb <- subset(iati,donor_code=="GB")
+write_csv(iatigb,"iatigb.csv",na="")
