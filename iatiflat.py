@@ -527,10 +527,11 @@ def flatten_activities(root):
                                         calculated_value = value*activity_recipient_percentage*activity_sector_percentage if (activity_recipient_percentage is not None and activity_sector_percentage is not None) else None
                                         converted_value = convert_usd(calculated_value,year,currency,ratedf)
                                         recip = recode_if_not_none(activity_recipient_code,recipient_dictionary)
+                                        to_di_id = activity_recipient_code
                                         sec_code = activity_sector_code
                                         pur_code = sec_code[:3] if sec_code is not None else None
                                         # row = [version,iati_identifier,secondary_reporter,transaction_type_code,year,transaction_date,recip,flow_type_code,category,finance_type_code,aid_type_code,currency,converted_value,short_description,sec_code,channel_code,long_description,ftc,pba,b_or_t,budget_type]
-                                        row = [year,recip,flow_type_code,category,finance_type_code,aid_type_code,converted_value,short_description,pur_code,sec_code,channel_code,long_description,ftc,pba,b_or_t,budget_type,iati_identifier]
+                                        row = [year,recip,to_di_id,flow_type_code,category,finance_type_code,aid_type_code,converted_value,short_description,pur_code,sec_code,channel_code,long_description,ftc,pba,b_or_t,budget_type,iati_identifier]
                                         output.append(row)
                             else:
                                 #Just activity recipients
@@ -539,9 +540,10 @@ def flatten_activities(root):
                                     calculated_value = value*activity_recipient_percentage if (activity_recipient_percentage is not None) else None
                                     converted_value = convert_usd(calculated_value,year,currency,ratedf)
                                     recip = recode_if_not_none(activity_recipient_code,recipient_dictionary)
+                                    to_di_id = activity_recipient_code
                                     sec_code = sector_code
                                     pur_code = sec_code[:3] if sec_code is not None else None
-                                    row = [year,recip,flow_type_code,category,finance_type_code,aid_type_code,converted_value,short_description,pur_code,sec_code,channel_code,long_description,ftc,pba,b_or_t,budget_type,iati_identifier]
+                                    row = [year,recip,to_di_id,flow_type_code,category,finance_type_code,aid_type_code,converted_value,short_description,pur_code,sec_code,channel_code,long_description,ftc,pba,b_or_t,budget_type,iati_identifier]
                                     output.append(row)
                         else:
                             if use_activity_sectors:
@@ -551,17 +553,19 @@ def flatten_activities(root):
                                     calculated_value = value*activity_sector_percentage if (activity_sector_percentage is not None) else None
                                     converted_value = convert_usd(calculated_value,year,currency,ratedf)
                                     recip = recode_if_not_none(recipient_code,recipient_dictionary)
+                                    to_di_id = recipient_code
                                     sec_code = activity_sector_code
                                     pur_code = sec_code[:3] if sec_code is not None else None
-                                    row = [year,recip,flow_type_code,category,finance_type_code,aid_type_code,converted_value,short_description,pur_code,sec_code,channel_code,long_description,ftc,pba,b_or_t,budget_type,iati_identifier]
+                                    row = [year,recip,to_di_id,flow_type_code,category,finance_type_code,aid_type_code,converted_value,short_description,pur_code,sec_code,channel_code,long_description,ftc,pba,b_or_t,budget_type,iati_identifier]
                                     output.append(row)
                             else:
                                 #Neither activity recipients nor sectors
                                 converted_value = convert_usd(value,year,currency,ratedf)
                                 recip = recode_if_not_none(recipient_code,recipient_dictionary)
+                                to_di_id = recipient_code
                                 sec_code = sector_code
                                 pur_code = sec_code[:3] if sec_code is not None else None
-                                row = [year,recip,flow_type_code,category,finance_type_code,aid_type_code,converted_value,short_description,pur_code,sec_code,channel_code,long_description,ftc,pba,b_or_t,budget_type,iati_identifier]
+                                row = [year,recip,to_di_id,flow_type_code,category,finance_type_code,aid_type_code,converted_value,short_description,pur_code,sec_code,channel_code,long_description,ftc,pba,b_or_t,budget_type,iati_identifier]
                                 output.append(row)
                 
             has_budget = "budget" in child_tags
@@ -607,9 +611,10 @@ def flatten_activities(root):
                                         calculated_value = value*activity_recipient_percentage*activity_sector_percentage if (activity_recipient_percentage is not None and activity_sector_percentage is not None) else None
                                         converted_value = convert_usd(calculated_value,year,currency,ratedf)
                                         recip = recode_if_not_none(activity_recipient_code,recipient_dictionary)
+                                        to_di_id = activity_recipient_code
                                         sec_code = activity_sector_code
                                         pur_code = sec_code[:3] if sec_code is not None else None
-                                        row = [year,recip,flow_type_code,category,finance_type_code,aid_type_code,converted_value,short_description,pur_code,sec_code,channel_code,long_description,ftc,pba,b_or_t,budget_type,iati_identifier]
+                                        row = [year,recip,to_di_id,flow_type_code,category,finance_type_code,aid_type_code,converted_value,short_description,pur_code,sec_code,channel_code,long_description,ftc,pba,b_or_t,budget_type,iati_identifier]
                                         output.append(row)
                             else:
                                 #Just activity recipients
@@ -620,9 +625,10 @@ def flatten_activities(root):
                                         calculated_value = value*activity_recipient_percentage*transaction_sector_percentage if (activity_recipient_percentage is not None and transaction_sector_percentage is not None) else None
                                         converted_value = convert_usd(calculated_value,year,currency,ratedf)
                                         recip = recode_if_not_none(activity_recipient_code,recipient_dictionary)
+                                        to_di_id = activity_recipient_code
                                         sec_code = transaction_sector_code
                                         pur_code = sec_code[:3] if sec_code is not None else None
-                                        row = [year,recip,flow_type_code,category,finance_type_code,aid_type_code,converted_value,short_description,pur_code,sec_code,channel_code,long_description,ftc,pba,b_or_t,budget_type,iati_identifier]
+                                        row = [year,recip,to_di_id,flow_type_code,category,finance_type_code,aid_type_code,converted_value,short_description,pur_code,sec_code,channel_code,long_description,ftc,pba,b_or_t,budget_type,iati_identifier]
                                         output.append(row)
                         else:
                             if use_activity_sectors:
@@ -634,9 +640,10 @@ def flatten_activities(root):
                                         calculated_value = value*transaction_recipient_percentage*activity_sector_percentage if (transaction_recipient_percentage is not None and activity_sector_percentage is not None) else None
                                         converted_value = convert_usd(calculated_value,year,currency,ratedf)
                                         recip = recode_if_not_none(transaction_recipient_code,recipient_dictionary)
+                                        to_di_id = transaction_recipient_code
                                         sec_code = activity_sector_code
                                         pur_code = sec_code[:3] if sec_code is not None else None
-                                        row = [year,recip,flow_type_code,category,finance_type_code,aid_type_code,converted_value,short_description,pur_code,sec_code,channel_code,long_description,ftc,pba,b_or_t,budget_type,iati_identifier]
+                                        row = [year,recip,to_di_id,flow_type_code,category,finance_type_code,aid_type_code,converted_value,short_description,pur_code,sec_code,channel_code,long_description,ftc,pba,b_or_t,budget_type,iati_identifier]
                                         output.append(row)
                             else:
                                 #Neither activity recipients nor sectors
@@ -647,9 +654,10 @@ def flatten_activities(root):
                                         calculated_value = value*transaction_recipient_percentage*transaction_sector_percentage if (transaction_recipient_percentage is not None and transaction_sector_percentage is not None) else None
                                         converted_value = convert_usd(calculated_value,year,currency,ratedf)
                                         recip = recode_if_not_none(transaction_recipient_code,recipient_dictionary)
+                                        to_di_id = transaction_recipient_code
                                         sec_code = transaction_sector_code
                                         pur_code = sec_code[:3] if sec_code is not None else None
-                                        row = [year,recip,flow_type_code,category,finance_type_code,aid_type_code,converted_value,short_description,pur_code,sec_code,channel_code,long_description,ftc,pba,b_or_t,budget_type,iati_identifier]
+                                        row = [year,recip,to_di_id,flow_type_code,category,finance_type_code,aid_type_code,converted_value,short_description,pur_code,sec_code,channel_code,long_description,ftc,pba,b_or_t,budget_type,iati_identifier]
                                         output.append(row)
     return output
     
@@ -660,7 +668,7 @@ if __name__ == '__main__':
     
     
     rootdir = 'C:/Users/Alex/Documents/Data/IATI-Registry-Refresher/data'
-    header = ["year","recipient_code","flow_code","category","finance_type","aid_type","usd_disbursement","short_description","purpose_code","sector_code","channel_code","long_description","ftc","pba","budget_or_transaction","budget_type","iati_identifier"]
+    header = ["year","recipient_code","to_di_id","flow_code","category","finance_type","aid_type","usd_disbursement","short_description","purpose_code","sector_code","channel_code","long_description","ftc","pba","budget_or_transaction","budget_type","iati_identifier"]
     
     donor_code_lookup = {
         "af":"1012"
@@ -728,8 +736,54 @@ if __name__ == '__main__':
         ,"who":"928"
         ,"worldbank":"905"
     }
+    donor_di_code_lookup = {
+        "1012":"adaptation-fund"
+        ,"913":"afdb"
+        ,"915":"asdb"
+        ,"801":"AU"
+        ,"2":"BE"
+        ,"1601":"bmgf"
+        ,"301":"CA"
+        ,"11":"CH"
+        ,"1011":"cif"
+        ,"5":"DE"
+        ,"3":"DK"
+        ,"990":"ebrd"
+        ,"50":"ES"
+        ,"918":"EU"
+        ,"932":"fao"
+        ,"18":"FI"
+        ,"4":"FR"
+        ,"1311":"gavi"
+        ,"12":"GB"
+        ,"1312":"global-fund"
+        ,"905":"ida"
+        ,"909":"idb"
+        ,"21":"IE"
+        ,"988":"ifad"
+        ,"903":"ifc"
+        ,"940":"international-labour-organisation"
+        ,"6":"IT"
+        ,"701":"JP"
+        ,"742":"KR"
+        ,"84":"LT"
+        ,"7":"NL"
+        ,"8":"NO"
+        ,"820":"NZ"
+        ,"951":"ofid"
+        ,"77":"RO"
+        ,"10":"SE"
+        ,"69":"SK"
+        ,"971":"unaids"
+        ,"959":"undp"
+        ,"974":"unfpa"
+        ,"963":"unicef"
+        ,"302":"US"
+        ,"966":"wfp"
+        ,"928":"who"
+    }
     #Remove this part if you don't want a header file
-    full_header = ["year","recipient_code","flow_code","category","finance_type","aid_type","usd_disbursement","short_description","purpose_code","sector_code","channel_code","long_description","ftc","pba","budget_or_transaction","budget_type","iati_identifier","donor_code"]
+    full_header = ["year","recipient_code","to_di_id","flow_code","category","finance_type","aid_type","usd_disbursement","short_description","purpose_code","sector_code","channel_code","long_description","ftc","pba","budget_or_transaction","budget_type","iati_identifier","donor_code","from_di_id"]
     header_frame = pd.DataFrame([full_header])
     header_frame.to_csv("C:/Users/Alex/Documents/Data/IATI/sep/000header.csv",index=False,header=False,encoding="utf-8")
     
@@ -750,6 +804,7 @@ if __name__ == '__main__':
                     data.columns = header
                     # data['publisher'] = publisher
                     data['donor_code'] = donor_code_lookup[publisher]
+                    data['from_di_id'] = donor_di_code_lookup[donor_code_lookup[publisher]]
                     data.to_csv("C:/Users/Alex/Documents/Data/IATI/sep/{}.csv".format(filename),index=False,header=False,encoding="utf-8")
                     
     os.system("cat C:/Users/Alex/Documents/Data/IATI/sep/*.csv > C:/Users/Alex/Documents/Data/IATI/iati.csv")

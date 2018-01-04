@@ -62,18 +62,20 @@ closeAllConnections()
 wd <- "C:/Users/Alex/Documents/Data/IATI/"
 setwd(wd)
 
-iati_filtered <- subset(iati,
-    !(is.na(year))
-    & !(is.na(usd_disbursement))
-)
-write_csv(iati_filtered,"iati_unfiltered.csv",na="")
+setwd("C:/Users/Alex/Documents/Data/IATI/slices")
+years <- unique(iati$year)
 
-iati2016 <- subset(iati,year==2016)
-iati2017 <- subset(iati,year==2017)
-iati2018 <- subset(iati,year==2018)
-write_csv(iati2016,"iati2016.csv",na="")
-write_csv(iati2017,"iati2017.csv",na="")
-write_csv(iati2018,"iati2018.csv",na="")
+for(this.year in years){
+  message(this.year)
+  temp <- subset(iati,year==this.year)
+  fn <- paste0("year/",this.year,".csv")
+  write_csv(temp,fn,na="")
+}
+donors <- unique(iati$from_di_id)
+for(this.donor in donors){
+  message(this.donor)
+  temp <- subset(iati,from_di_id==this.donor)
+  fn <- paste0("donor/",this.donor,".csv")
+  write_csv(temp,fn,na="")
+}
 
-iatigb <- subset(iati,donor_code=="GB")
-write_csv(iatigb,"iatigb.csv",na="")
