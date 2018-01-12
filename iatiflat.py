@@ -7,11 +7,12 @@ import os
 from io import StringIO
 import shutil
 
-#Probably need to refactor this for multiple sectors, providers, etc.
+#Used for ambiguously structed arrays resulting from XML queries. If an array has any entries, take the first one.
 def default_first(array):
     #If an array isn't empty, give us the first element
     return array[0] if array is not None and len(array)>0 else None
 
+#Used for ambiguous result default replacement. If value doesn't exist, replace it with the default.
 def replace_default_if_none(value,default):
     if value is None:
         return default
@@ -20,6 +21,7 @@ def replace_default_if_none(value,default):
     else:
         return value
     
+#Used for ambiguous recoding. If code exists, try and use the dictionary to look up the result.
 def recode_if_not_none(code,dictionary):
     if code is None:
         return None
@@ -30,22 +32,8 @@ def recode_if_not_none(code,dictionary):
             return dictionary[code]
         except KeyError:
             return None
-        
-# def convert_usd(value,year,currency,ratedf):
-#     if value==0:
-#         return 0
-#     elif value is None or year is None or currency is None:
-#         return None
-#     thisRate = ratedf[(ratedf.currency==currency) & (ratedf.year==year)]
-#     if thisRate['rate'].count()>0:
-#         conversion_factor = thisRate['rate'].values[0]
-#         if conversion_factor>0:
-#             return value*conversion_factor
-#         else:
-#             return None
-#     else:
-#         return None
 
+#Used for currency conversion. Works like recode_if_not_none but for our 2-dimension exchange rate dictionary
 def convert_usd(value,year,currency,ratedf):
     if value==0:
         return 0
@@ -60,6 +48,7 @@ def convert_usd(value,year,currency,ratedf):
     except KeyError:
         return None
     
+#Two dimension exchange rate dictionary. Access exchange rates by currency and year like ratedf[currencyCode][year]
 ratedf = {																																												
 "AUD":{1980:1.139517172,1981:1.149313491,1982:1.017393998,1983:0.902378871,1984:0.879572797,1985:0.700799351,1986:0.670875651,1987:0.700857565,1988:0.784216442,1989:0.792528112,1990:0.781289797,1991:0.7790979,1992:0.735299284,1993:0.680116413,1994:0.731674124,1995:0.741496187,1996:0.782945437,1997:0.744062837,1998:0.62940068,1999:0.645332247,2000:0.582346532,2001:0.517635943,2002:0.543902648,2003:0.651884045,2004:0.736578578,2005:0.763843802,2006:0.75334984,2007:0.838560795,2008:0.855264574,2009:0.791303713,2010:0.919499092,2011:1.032212708,2012:1.035799755,2013:0.96842634,2014:0.90269528,2015:0.7526124,2016:0.743888756,2017:0.771955602,2018:0.789655036,2019:0.791796204,2020:0.788861628,2021:0.783152088,2022:0.777451106}
 ,"CAD":{1980:0.855250392,1981:0.834120086,1982:0.810615012,1983:0.811430314,1984:0.772142108,1985:0.732361592,1986:0.719696825,1987:0.754177988,1988:0.81258358,1989:0.844626367,1990:0.857091733,1991:0.872819995,1992:0.827353743,1993:0.775172977,1994:0.732277231,1995:0.728653406,1996:0.733433058,1997:0.7222398,1998:0.674122875,1999:0.673006085,2000:0.673378508,2001:0.645700808,2002:0.637252281,2003:0.713818518,2004:0.768619974,2005:0.825295619,2006:0.881590155,2007:0.931012525,2008:0.937171907,2009:0.874813461,2010:0.9707201,2011:1.010580133,2012:1.000812483,2013:0.971065558,2014:0.904073234,2015:0.781801164,2016:0.754489175,2017:0.769638055,2018:0.790646334,2019:0.792156315,2020:0.791417789,2021:0.789644816,2022:0.788117677}
@@ -74,6 +63,7 @@ ratedf = {
 ,"XDR":{1980:0,1981:0.849669143,1982:0.90850397,1983:0.936560464,1984:0.977321369,1985:0.986526268,1986:0.85214274,1987:0.773748051,1988:0.745580463,1989:0.780900617,1990:0.737135139,1991:0.732009702,1992:0.710154778,1993:0.716315481,1994:0.698574243,1995:0.65983875,1996:0.68877679,1997:0.726835133,1998:0.736969368,1999:0.731386642,2000:0.758990484,2001:0.783971837,2002:0.773218029,2003:0.713999837,2004:0.675328633,2005:0.677590113,2006:0.679903131,2007:0.653823024,2008:0.635019892,2009:0.649513669,2010:0.655705877,2011:0.633741293,2012:0.653151814,2013:0.658074197,2014:0.658697093,2015:0.714973903,2016:0.719540519,2017:0.722092665,2018:0,2019:0,2020:0,2021:0,2022:0}
 }																																										
         
+#Dictionary to translate between DAC recipient code (as reported in IATI) to CRS recipient code
 recipient_dictionary = {
     "88":"88"
     ,"89":"89"
@@ -284,51 +274,31 @@ recipient_dictionary = {
     ,"ZW":"265"
 }
 
-# def make_versioned_code_dict(version):
-#     if version in ["1.01","1.02","1.03"]:
-#         version = "1.04"
-#     master_dict = {}
-#     desired_lists = ["TransactionType","Currency","Sector","Country","Region","DisbursementChannel","FinanceType","AidType"]
-#     for desired_list in desired_lists:
-#         codelist = iati.default.codelist(desired_list,version)
-#         master_dict[desired_list] = {code.value:code.name for code in codelist.codes}
-#     if version in ['1.04','1.05']:
-#         master_dict["TransactionType"] = {
-#             "QP":"Purchase of Equity"
-#             ,"C":"Commitment"
-#             ,"E":"Expenditure"
-#             ,"D":"Disbursement"
-#             ,"IR":"Interest Repayment"
-#             ,"CG":"Credit Guarantee"
-#             ,"QS":"Sale of Equity"
-#             ,"R":"Reimbursement"
-#             ,"LR":"Loan Repayment"
-#             ,"IF":"Incoming Funds"
-#         }
-#     return master_dict
-
+#Main flattening function here. Input is the XML root of the XML document, and output is an array of arrays with flattened data.
 def flatten_activities(root):
     output = []
     try:
         version = root.attrib["version"]
     except KeyError:
-        #Default?
+        #Defaults to 2.02 if  the document happens to be missing an IATI version
         version = '2.02'
     
+    #Find all activities
     activity_len = len(root.findall("iati-activity"))
         
+    #Set up a quick progress bar for tracking processing; iterate through every activity
     bar = progressbar.ProgressBar()
     for i in bar(range(0,activity_len)):
         activity = root.xpath('iati-activity[%s]' % (i + 1) )[0]
+        #Capture iati identifier
         iati_identifier = default_first(activity.xpath("iati-identifier/text()"))
         
-        # Can fail on "1.0"
-        # vcd = make_versioned_code_dict(version)
             
         child_tags = [child.tag for child in activity.getchildren()]
 
-        secondary_reporter = default_first(activity.xpath("reporting-org/@secondary-reporter"))
-        secondary_reporter = replace_default_if_none(secondary_reporter,"0")
+        #Not used, since we're filtering for the donors we want anyway.
+        # secondary_reporter = default_first(activity.xpath("reporting-org/@secondary-reporter"))
+        # secondary_reporter = replace_default_if_none(secondary_reporter,"0")
         
         #Set up defaults
                     
@@ -372,6 +342,7 @@ def flatten_activities(root):
             else:
                 defaults[tag] = None
                 
+        #For every sector and every recipient in the activity, try and total the percentage splits
         activity_sector_percentage = 0.0
         activity_recipient_percentage = 0.0
         
@@ -479,7 +450,7 @@ def flatten_activities(root):
             if len(transaction_recipients.keys())==1:
                 transaction_recipients[transaction_recipients.keys()[0]] = 1
                     
-            #Another time through
+            #Another time through transactions to record data after sums are recorded
             for transaction in transactions:
                 transaction_type_code = default_first(transaction.xpath("transaction-type/@code"))
                 if transaction_type_code in ["E","D","3","4"]:
@@ -516,6 +487,10 @@ def flatten_activities(root):
                     budget_type = None
                     b_or_t = "Transaction"
                     
+                    #Here's where the splitting happens. We're taking the boolean indicators on whether we're splitting by activity or transaction level percentages
+                    #and looping through for-loops that add additional rows depending on the number of possible combinations.
+                    #Final percentages are calculated as the intersectional percentages of sector and recipient. Important to note that missing data for either sectors
+                    #or recipients will result in loss of valid value data.
                     if value>0:
                         if use_activity_recipients:
                             if use_activity_sectors:
@@ -530,7 +505,6 @@ def flatten_activities(root):
                                         to_di_id = activity_recipient_code
                                         sec_code = activity_sector_code
                                         pur_code = sec_code[:3] if sec_code is not None else None
-                                        # row = [version,iati_identifier,secondary_reporter,transaction_type_code,year,transaction_date,recip,flow_type_code,category,finance_type_code,aid_type_code,currency,converted_value,short_description,sec_code,channel_code,long_description,ftc,pba,b_or_t,budget_type]
                                         row = [year,recip,to_di_id,flow_type_code,category,finance_type_code,aid_type_code,converted_value,short_description,pur_code,sec_code,channel_code,long_description,ftc,pba,b_or_t,budget_type,iati_identifier]
                                         output.append(row)
                             else:
@@ -568,6 +542,7 @@ def flatten_activities(root):
                                 row = [year,recip,to_di_id,flow_type_code,category,finance_type_code,aid_type_code,converted_value,short_description,pur_code,sec_code,channel_code,long_description,ftc,pba,b_or_t,budget_type,iati_identifier]
                                 output.append(row)
                 
+            #Loop through budgets, and capture as close equivalents as we can to transactions
             has_budget = "budget" in child_tags
             if has_budget:
                 budgets = activity.findall("budget")
@@ -663,6 +638,7 @@ def flatten_activities(root):
     
 if __name__ == '__main__':
     
+    #Clean-up of old data; Make sure nothing important is in whatever folder you put here because it will be irrevocably erased
     shutil.rmtree("C:/Users/Alex/Documents/Data/IATI/sep/")
     os.mkdir("C:/Users/Alex/Documents/Data/IATI/sep/")
     
@@ -670,6 +646,7 @@ if __name__ == '__main__':
     rootdir = 'C:/Users/Alex/Documents/Data/IATI-Registry-Refresher/data'
     header = ["year","recipient_code","to_di_id","flow_code","category","finance_type","aid_type","usd_disbursement","short_description","purpose_code","sector_code","channel_code","long_description","ftc","pba","budget_or_transaction","budget_type","iati_identifier"]
     
+    #Dictionary that translates between iati donor code and CRS donor code
     donor_code_lookup = {
         "af":"1012"
         ,"afd":"4"
@@ -736,6 +713,7 @@ if __name__ == '__main__':
         ,"who":"928"
         ,"worldbank":"905"
     }
+    #And a further dictionary to translate between CRS donor code and our internal entity identifier
     donor_di_code_lookup = {
         "1012":"adaptation-fund"
         ,"913":"afdb"
@@ -782,17 +760,17 @@ if __name__ == '__main__':
         ,"966":"wfp"
         ,"928":"who"
     }
-    #Remove this part if you don't want a header file
+    #Write a CSV that just consists of the full header. This will be cat'ed to the top of our concatinated total CSV after all donor CSVs have been written
     full_header = ["year","recipient_code","to_di_id","flow_code","category","finance_type","aid_type","usd_disbursement","short_description","purpose_code","sector_code","channel_code","long_description","ftc","pba","budget_or_transaction","budget_type","iati_identifier","donor_code","from_di_id"]
     header_frame = pd.DataFrame([full_header])
     header_frame.to_csv("C:/Users/Alex/Documents/Data/IATI/sep/000header.csv",index=False,header=False,encoding="utf-8")
     
+    #Loop through all the folders downloaded via IATI registry refresh, and pass XML roots to our flatten_activities function.
     for subdir, dirs, files in os.walk(rootdir):
         for filename in files:
             filepath = os.path.join(subdir,filename)
             publisher = os.path.basename(subdir)
             if publisher in donor_code_lookup.keys():
-            # if publisher in sorted(donor_code_lookup.keys())[57:]:
                 print filename
                 try:
                     root = etree.parse(filepath).getroot()
@@ -807,4 +785,7 @@ if __name__ == '__main__':
                     data['from_di_id'] = donor_di_code_lookup[donor_code_lookup[publisher]]
                     data.to_csv("C:/Users/Alex/Documents/Data/IATI/sep/{}.csv".format(filename),index=False,header=False,encoding="utf-8")
                     
+    #Once individual (headless) CSVs are written for each donor. It's an easy step to concatenate them into one large document.
+    #You may want to consider doing this in code rather than saving each donor's CSVs to disk, but I found this useful for
+    #saving progress physically in case the conversion process gets interrupted
     os.system("cat C:/Users/Alex/Documents/Data/IATI/sep/*.csv > C:/Users/Alex/Documents/Data/IATI/iati.csv")
