@@ -2,6 +2,7 @@ from iatiflat2 import *
 import pandas as pd
 import os
 import shutil
+from lxml import etree
 
 if __name__ == '__main__':
     #Initialize flattener class
