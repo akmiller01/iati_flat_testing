@@ -35,7 +35,7 @@ The flatten_activities function within iatiflat follows the following logical ru
 * For each unique combination of sector and recipient found in the breakdown, output one row of data
 * That row of data will contain meta-data associated with its parent transaction/budget, along with a value divided by the sector and recipient breakdown
 * Ignore transactions/budgets where:
-..* Both sector and recipient percentages cannot be established
-..* The transaction type is not "D" or "E" for version 1.X or 3 or 4 for version 2.X (to align with the CRS)
-..* The sector vocabulary is not one of the following "", "1", "2", "DAC", or "DAC-3"
-..* The value is 0 or missing
+    * Both sector and recipient percentages cannot be established
+    * The transaction type is not "D" or "E" for version 1.X or 3 or 4 for version 2.X (to align with the CRS)
+    * The sector vocabulary is not one of the following "", "1", "2", "DAC", or "DAC-3"
+    * The value is 0 or missing
