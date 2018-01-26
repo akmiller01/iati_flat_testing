@@ -15,9 +15,6 @@ from iatiflat2 import *
 #Initialize flattener class
 iatiflat = IatiFlat()
 
-#Path to some IATI XML
-filepath = "C:\\Data\\WorldBank\\worldbank-89.xml"
-
 #Parse XML from file
 filepath = "C:\\Data\\Worldbank\\worldbank-89.xml"
 root = etree.parse(filepath).getroot()
