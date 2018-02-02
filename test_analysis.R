@@ -31,6 +31,9 @@ iati <- read_csv("iati.csv")
 
 setwd("C:/git/iati_flat_testing/output/")
 
+incoming_table <- data.table(iati)[,.(incoming=mean(incoming=="True")),by=.(from_di_id)]
+write.csv(incoming_table,"incoming_table.csv",row.names=FALSE)
+
 wb <- createWorkbook()
 
 for(varname in names(iati)){
@@ -78,4 +81,3 @@ for(this.donor in donors){
   fn <- paste0("donor/",this.donor,".csv")
   write_csv(temp,fn,na="")
 }
-

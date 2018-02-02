@@ -386,7 +386,7 @@ def convert_usd(value,year,currency,ratedf):
 #A class that will hold the flattening function and dictionary definitions
 class IatiFlat(object):
     def __init__(self):
-        self.header = ["year","recipient_code","to_di_id","flow_code","category","finance_type","aid_type","usd_disbursement","short_description","purpose_code","sector_code","channel_code","long_description","ftc","pba","budget_or_transaction","budget_type","iati_identifier"]
+        self.header = ["year","recipient_code","to_di_id","flow_code","category","finance_type","aid_type","usd_disbursement","short_description","purpose_code","sector_code","channel_code","long_description","ftc","pba","budget_or_transaction","budget_type","iati_identifier","incoming"]
         self.dictionaries = {}
         #Defaults, can be overwritten with next function
         self.dictionaries["ratedf"] = ratedf
@@ -572,10 +572,15 @@ class IatiFlat(object):
                     transaction_sectors[transaction_sectors.keys()[0]] = 1
                 if len(transaction_recipients.keys())==1:
                     transaction_recipients[transaction_recipients.keys()[0]] = 1
+                    
+                #Activity has any incoming funds
+                incoming = False
                         
                 #Another time through transactions to record data after sums are recorded
                 for transaction in transactions:
                     transaction_type_code = default_first(transaction.xpath("transaction-type/@code"))
+                    if transaction_type_code in ["IF","1","11"]:
+                        incoming = True
                     if transaction_type_code in ["E","D","3","4"]:
                         transaction_date = default_first(transaction.xpath("transaction-date/@iso-date"))
                         year = int(transaction_date[:4]) if transaction_date is not None else None
@@ -628,7 +633,7 @@ class IatiFlat(object):
                                             to_di_id = activity_recipient_code
                                             sec_code = activity_sector_code
                                             pur_code = sec_code[:3] if sec_code is not None else None
-                                            row = [year,recip,to_di_id,flow_type_code,category,finance_type_code,aid_type_code,converted_value,short_description,pur_code,sec_code,channel_code,long_description,ftc,pba,b_or_t,budget_type,iati_identifier]
+                                            row = [year,recip,to_di_id,flow_type_code,category,finance_type_code,aid_type_code,converted_value,short_description,pur_code,sec_code,channel_code,long_description,ftc,pba,b_or_t,budget_type,iati_identifier,incoming]
                                             output.append(row)
                                 else:
                                     #Just activity recipients
@@ -640,7 +645,7 @@ class IatiFlat(object):
                                         to_di_id = activity_recipient_code
                                         sec_code = sector_code
                                         pur_code = sec_code[:3] if sec_code is not None else None
-                                        row = [year,recip,to_di_id,flow_type_code,category,finance_type_code,aid_type_code,converted_value,short_description,pur_code,sec_code,channel_code,long_description,ftc,pba,b_or_t,budget_type,iati_identifier]
+                                        row = [year,recip,to_di_id,flow_type_code,category,finance_type_code,aid_type_code,converted_value,short_description,pur_code,sec_code,channel_code,long_description,ftc,pba,b_or_t,budget_type,iati_identifier,incoming]
                                         output.append(row)
                             else:
                                 if use_activity_sectors:
@@ -653,7 +658,7 @@ class IatiFlat(object):
                                         to_di_id = recipient_code
                                         sec_code = activity_sector_code
                                         pur_code = sec_code[:3] if sec_code is not None else None
-                                        row = [year,recip,to_di_id,flow_type_code,category,finance_type_code,aid_type_code,converted_value,short_description,pur_code,sec_code,channel_code,long_description,ftc,pba,b_or_t,budget_type,iati_identifier]
+                                        row = [year,recip,to_di_id,flow_type_code,category,finance_type_code,aid_type_code,converted_value,short_description,pur_code,sec_code,channel_code,long_description,ftc,pba,b_or_t,budget_type,iati_identifier,incoming]
                                         output.append(row)
                                 else:
                                     #Neither activity recipients nor sectors
@@ -662,7 +667,7 @@ class IatiFlat(object):
                                     to_di_id = recipient_code
                                     sec_code = sector_code
                                     pur_code = sec_code[:3] if sec_code is not None else None
-                                    row = [year,recip,to_di_id,flow_type_code,category,finance_type_code,aid_type_code,converted_value,short_description,pur_code,sec_code,channel_code,long_description,ftc,pba,b_or_t,budget_type,iati_identifier]
+                                    row = [year,recip,to_di_id,flow_type_code,category,finance_type_code,aid_type_code,converted_value,short_description,pur_code,sec_code,channel_code,long_description,ftc,pba,b_or_t,budget_type,iati_identifier,incoming]
                                     output.append(row)
                     
                 #Loop through budgets, and capture as close equivalents as we can to transactions
@@ -712,7 +717,7 @@ class IatiFlat(object):
                                             to_di_id = activity_recipient_code
                                             sec_code = activity_sector_code
                                             pur_code = sec_code[:3] if sec_code is not None else None
-                                            row = [year,recip,to_di_id,flow_type_code,category,finance_type_code,aid_type_code,converted_value,short_description,pur_code,sec_code,channel_code,long_description,ftc,pba,b_or_t,budget_type,iati_identifier]
+                                            row = [year,recip,to_di_id,flow_type_code,category,finance_type_code,aid_type_code,converted_value,short_description,pur_code,sec_code,channel_code,long_description,ftc,pba,b_or_t,budget_type,iati_identifier,incoming]
                                             output.append(row)
                                 else:
                                     #Just activity recipients
@@ -726,7 +731,7 @@ class IatiFlat(object):
                                             to_di_id = activity_recipient_code
                                             sec_code = transaction_sector_code
                                             pur_code = sec_code[:3] if sec_code is not None else None
-                                            row = [year,recip,to_di_id,flow_type_code,category,finance_type_code,aid_type_code,converted_value,short_description,pur_code,sec_code,channel_code,long_description,ftc,pba,b_or_t,budget_type,iati_identifier]
+                                            row = [year,recip,to_di_id,flow_type_code,category,finance_type_code,aid_type_code,converted_value,short_description,pur_code,sec_code,channel_code,long_description,ftc,pba,b_or_t,budget_type,iati_identifier,incoming]
                                             output.append(row)
                             else:
                                 if use_activity_sectors:
@@ -741,7 +746,7 @@ class IatiFlat(object):
                                             to_di_id = transaction_recipient_code
                                             sec_code = activity_sector_code
                                             pur_code = sec_code[:3] if sec_code is not None else None
-                                            row = [year,recip,to_di_id,flow_type_code,category,finance_type_code,aid_type_code,converted_value,short_description,pur_code,sec_code,channel_code,long_description,ftc,pba,b_or_t,budget_type,iati_identifier]
+                                            row = [year,recip,to_di_id,flow_type_code,category,finance_type_code,aid_type_code,converted_value,short_description,pur_code,sec_code,channel_code,long_description,ftc,pba,b_or_t,budget_type,iati_identifier,incoming]
                                             output.append(row)
                                 else:
                                     #Neither activity recipients nor sectors
@@ -755,6 +760,6 @@ class IatiFlat(object):
                                             to_di_id = transaction_recipient_code
                                             sec_code = transaction_sector_code
                                             pur_code = sec_code[:3] if sec_code is not None else None
-                                            row = [year,recip,to_di_id,flow_type_code,category,finance_type_code,aid_type_code,converted_value,short_description,pur_code,sec_code,channel_code,long_description,ftc,pba,b_or_t,budget_type,iati_identifier]
+                                            row = [year,recip,to_di_id,flow_type_code,category,finance_type_code,aid_type_code,converted_value,short_description,pur_code,sec_code,channel_code,long_description,ftc,pba,b_or_t,budget_type,iati_identifier,incoming]
                                             output.append(row)
         return output
