@@ -122,7 +122,7 @@ def convert_usd(value,year,currency,ratedf):
 #A class that will hold the flattening function and dictionary definitions
 class IatiFlat(object):
     def __init__(self):
-        self.header = ["year","transaction_type","usd_disbursement","budget_or_transaction","budget_type","iati_identifier"]
+        self.header = ["year","recipient_code","transaction_type","usd_disbursement","budget_or_transaction","budget_type","iati_identifier"]
         self.dictionaries = {}
         #Defaults, can be overwritten with next function
         self.dictionaries["ratedf"] = ratedf
@@ -168,10 +168,84 @@ class IatiFlat(object):
             if publisher=="fco":
                 defaults["default-currency"]="GBP"
             
+            #For every sector and every recipient in the activity, try and total the percentage splits
+            activity_recipient_percentage = 0.0
+            
+            recipient_countries = activity.findall("recipient-country")
+            activity_recipients = {}
+            for recipient_country in recipient_countries:
+                attribs = recipient_country.attrib
+                attrib_keys = attribs.keys()
+                percentage = attribs['percentage'] if 'percentage' in attrib_keys else None
+                if percentage is not None:
+                    percentage = percentage.replace("%","")
+                activity_recipient_percentage += float(percentage) if percentage is not None else 0.0
+                code = attribs['code'] if 'code' in attrib_keys else None
+                if code is not None:
+                    activity_recipients[code] = float(percentage) if percentage is not None else None
+                
+            recipient_regions = activity.findall("recipient-region")
+            for recipient_region in recipient_regions:
+                attribs = recipient_region.attrib
+                attrib_keys = attribs.keys()
+                percentage = attribs['percentage'] if 'percentage' in attrib_keys else None
+                if percentage is not None:
+                    percentage = percentage.replace("%","")
+                activity_recipient_percentage += float(percentage) if percentage is not None else 0.0
+                code = attribs['code'] if 'code' in attrib_keys else None
+                if code is not None:
+                    activity_recipients[code] = float(percentage) if percentage is not None else None
+                    
+            #If percentages are greater than 100, rescale to 100. Also divide by 100 to make sure percentages run 0 to 1.00
+            activity_recipient_percentage = max(activity_recipient_percentage,100.0)
+            
+            for activity_recipient_code in activity_recipients:
+                activity_recipients[activity_recipient_code] = (activity_recipients[activity_recipient_code] / activity_recipient_percentage) if (activity_recipients[activity_recipient_code]) is not None else None
+                
+            #If there's only one recipient, it's percent is implied to be 100
+            if len(activity_recipients.keys())==1:
+                activity_recipients[activity_recipients.keys()[0]] = 1
+            
             if secondary_reporter=="0":
                 has_transactions = "transaction" in child_tags
                 if has_transactions:
                     transactions = activity.findall("transaction")
+                    
+                    #Once through the transactions to find the recipient sum, recipient percents
+                    transaction_recipients = {}
+                    for transaction in transactions:
+                        transaction_type_code = default_first(transaction.xpath("transaction-type/@code"))
+                        if transaction_type_code in ["E","D","3","4"]:
+                            
+                            recipient_country_code = default_first(transaction.xpath("recipient-country/@code"))
+                            recipient_region_code = default_first(transaction.xpath("recipient-region/@code"))
+                            
+                            recipient_code = replace_default_if_none(recipient_country_code,recipient_region_code)
+                            
+                            value = default_first(transaction.xpath("value/text()"))
+                            try:
+                                value = float(value.replace(" ", "")) if value is not None else None
+                            except ValueError:
+                                value = None
+                            
+                            if value is not None:
+                                if recipient_code is not None:
+                                    transaction_recipients[recipient_code] = value
+                            
+                    #If we turned up valid recipients, don't use the activity-level ones
+                    use_activity_recipients = len(transaction_recipients.keys())==0
+                    
+                    #Calc the sum of non-negative recips
+                    transaction_recipient_value_sum = 0.0
+                    for recipient_code in transaction_recipients:
+                        transaction_recipient_value_sum += transaction_recipients[recipient_code] if (transaction_recipients[recipient_code]>0.0) else 0.0
+                    if transaction_recipient_value_sum > 0.0:
+                        for recipient_code in transaction_recipients:
+                            transaction_recipients[recipient_code] = transaction_recipients[recipient_code]/transaction_recipient_value_sum
+                                
+                    #If there's only one recipient, it's percent is implied to be 100
+                    if len(transaction_recipients.keys())==1:
+                        transaction_recipients[transaction_recipients.keys()[0]] = 1
                             
                     for transaction in transactions:
                         transaction_type_code = default_first(transaction.xpath("transaction-type/@code"))
@@ -194,16 +268,33 @@ class IatiFlat(object):
                                 value = float(value.replace(" ", "")) if value is not None else None
                             except ValueError:
                                 value = None
+                                
+                            recipient_country_code = default_first(transaction.xpath("recipient-country/@code"))
+                            recipient_region_code = default_first(transaction.xpath("recipient-region/@code"))
+                            
+                            recipient_code = replace_default_if_none(recipient_country_code,recipient_region_code)
+                                
                             budget_type = None
                             b_or_t = "Transaction"
                             
-                            if value:
+                            if value and use_activity_recipients:
+                                for activity_recipient_code in activity_recipients.keys():
+                                    activity_recipient_percentage = activity_recipients[activity_recipient_code]
+                                    calculated_value =  value*activity_recipient_percentage if (activity_recipient_percentage is not None) else None
+                                    if currency in self.dictionaries["ratedf"]:
+                                        converted_value = convert_usd(calculated_value,year,currency,self.dictionaries["ratedf"])
+                                    else:
+                                        pdb.set_trace()
+                                    # ["year","recipient_code","transaction_type","usd_disbursement","budget_or_transaction","budget_type","iati_identifier"]
+                                    row = [year,activity_recipient_code,transaction_type_code,converted_value,b_or_t,budget_type,iati_identifier]
+                                    output.append(row)
+                            elif value and not use_activity_recipients:
                                 if currency in self.dictionaries["ratedf"]:
                                     converted_value = convert_usd(value,year,currency,self.dictionaries["ratedf"])
                                 else:
                                     pdb.set_trace()
-                                # ["year","transaction_type","usd_disbursement","budget_or_transaction","budget_type","iati_identifier"]
-                                row = [year,transaction_type_code,converted_value,b_or_t,budget_type,iati_identifier]
+                                # ["year","recipient_code","transaction_type","usd_disbursement","budget_or_transaction","budget_type","iati_identifier"]
+                                row = [year,recipient_code,transaction_type_code,converted_value,b_or_t,budget_type,iati_identifier]
                                 output.append(row)
                                     
                     #Loop through budgets, and capture as close equivalents as we can to transactions
@@ -237,13 +328,27 @@ class IatiFlat(object):
                             
                             b_or_t = "Budget"
                     
-                            if value:
-                                if currency in self.dictionaries["ratedf"]:
-                                    converted_value = convert_usd(value,year,currency,self.dictionaries["ratedf"])
-                                else:
-                                    pdb.set_trace()
-                                # ["year","transaction_type","usd_disbursement","budget_or_transaction","budget_type","iati_identifier"]
-                                row = [year,transaction_type_code,converted_value,b_or_t,budget_type,iati_identifier]
-                                output.append(row)
+                            if value and use_activity_recipients:
+                                for activity_recipient_code in activity_recipients.keys():
+                                    activity_recipient_percentage = activity_recipients[activity_recipient_code]
+                                    calculated_value =  value*activity_recipient_percentage if (activity_recipient_percentage is not None) else None
+                                    if currency in self.dictionaries["ratedf"]:
+                                        converted_value = convert_usd(calculated_value,year,currency,self.dictionaries["ratedf"])
+                                    else:
+                                        pdb.set_trace()
+                                    # ["year","recipient_code","transaction_type","usd_disbursement","budget_or_transaction","budget_type","iati_identifier"]
+                                    row = [year,activity_recipient_code,transaction_type_code,converted_value,b_or_t,budget_type,iati_identifier]
+                                    output.append(row)
+                            elif value and not use_activity_recipients:
+                                for transaction_recipient_code in transaction_recipients.keys():
+                                    transaction_recipient_percentage = transaction_recipients[transaction_recipient_code]
+                                    calculated_value =  value*transaction_recipient_percentage if (transaction_recipient_percentage is not None) else None
+                                    if currency in self.dictionaries["ratedf"]:
+                                        converted_value = convert_usd(calculated_value,year,currency,self.dictionaries["ratedf"])
+                                    else:
+                                        pdb.set_trace()
+                                    # ["year","recipient_code","transaction_type","usd_disbursement","budget_or_transaction","budget_type","iati_identifier"]
+                                    row = [year,transaction_recipient_code,transaction_type_code,converted_value,b_or_t,budget_type,iati_identifier]
+                                    output.append(row)
 
         return output

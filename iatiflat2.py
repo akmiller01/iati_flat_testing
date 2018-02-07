@@ -475,6 +475,8 @@ class IatiFlat(object):
                 attribs = sector.attrib
                 attrib_keys = attribs.keys()
                 percentage = attribs['percentage'] if 'percentage' in attrib_keys else None
+                if percentage is not None:
+                    percentage = percentage.replace("%","")
                 activity_sector_percentage += float(percentage) if percentage is not None else 0.0
                 code = attribs['code'] if 'code' in attrib_keys else None
                 vocabulary = attribs['vocabulary'] if 'vocabulary' in attrib_keys else None
@@ -488,6 +490,8 @@ class IatiFlat(object):
                 attribs = recipient_country.attrib
                 attrib_keys = attribs.keys()
                 percentage = attribs['percentage'] if 'percentage' in attrib_keys else None
+                if percentage is not None:
+                    percentage = percentage.replace("%","")
                 activity_recipient_percentage += float(percentage) if percentage is not None else 0.0
                 code = attribs['code'] if 'code' in attrib_keys else None
                 if code is not None:
@@ -498,6 +502,8 @@ class IatiFlat(object):
                 attribs = recipient_region.attrib
                 attrib_keys = attribs.keys()
                 percentage = attribs['percentage'] if 'percentage' in attrib_keys else None
+                if percentage is not None:
+                    percentage = percentage.replace("%","")
                 activity_recipient_percentage += float(percentage) if percentage is not None else 0.0
                 code = attribs['code'] if 'code' in attrib_keys else None
                 if code is not None:
