@@ -1,5 +1,7 @@
 import progressbar
 from lxml import etree
+import datetime
+import dateutil
 import pdb
 
 #Two dimension exchange rate dictionary. Access exchange rates by currency and year like ratedf[currencyCode][year]
@@ -207,9 +209,11 @@ class IatiFlat(object):
                                 output.append(row)
                                     
                     #Loop through budgets, and capture as close equivalents as we can to transactions
+                    budget_output = []
                     has_budget = "budget" in child_tags
                     if has_budget:
                         budgets = activity.findall("budget")
+                        
                         for budget in budgets:
                             transaction_type_code = None
                             if "type" in budget.attrib.keys():
@@ -218,32 +222,85 @@ class IatiFlat(object):
                                 budget_type = None
                                 
                             transaction_date = default_first(budget.xpath("period-start/@iso-date"))
+                            transaction_date_end = default_first(budget.xpath("period-end/@iso-date"))
+                            time_range = {}
                             try:
-                                year = int(transaction_date[:4]) if transaction_date is not None else None
-                            except ValueError:
-                                year = None
-                                
-                            value = default_first(budget.xpath("value/text()"))
-                            try:
-                                value = float(value.replace(" ", "")) if value is not None else None
-                            except ValueError:
-                                value = None
-                            currency = default_first(budget.xpath("value/@currency"))
-                            currency = replace_default_if_none(currency,defaults["default-currency"])
-                            if currency is not None:
-                                currency = currency.replace(" ","")
-                            if publisher in troublesome_publishers:
-                                currency = defaults["default-currency"]
+                                time_range["start"] = dateutil.parser.parse(transaction_date)
+                                time_range["end"] = dateutil.parser.parse(transaction_date_end)
+                            except (TypeError,ValueError) as error:
+                                time_range["start"] = None
+                                time_range["end"] = None
+                            if time_range["start"] is not None:
+                                time_range["length"] = time_range["end"]-time_range["start"]
+                                if time_range["length"]<datetime.timedelta(370):
+                                    year = time_range["start"].year
+                                        
+                                    value = default_first(budget.xpath("value/text()"))
+                                    try:
+                                        value = float(value.replace(" ", "")) if value is not None else None
+                                    except ValueError:
+                                        value = None
+                                    currency = default_first(budget.xpath("value/@currency"))
+                                    currency = replace_default_if_none(currency,defaults["default-currency"])
+                                    if currency is not None:
+                                        currency = currency.replace(" ","")
+                                    if publisher in troublesome_publishers:
+                                        currency = defaults["default-currency"]
+                                    
+                                    b_or_t = "Budget"
                             
-                            b_or_t = "Budget"
-                    
-                            if value:
-                                if currency in self.dictionaries["ratedf"]:
-                                    converted_value = convert_usd(value,year,currency,self.dictionaries["ratedf"])
-                                else:
-                                    pdb.set_trace()
-                                # ["year","transaction_type","usd_disbursement","budget_or_transaction","budget_type","iati_identifier"]
-                                row = [year,transaction_type_code,converted_value,b_or_t,budget_type,iati_identifier]
-                                output.append(row)
+                                    if value:
+                                        if currency in self.dictionaries["ratedf"]:
+                                            converted_value = convert_usd(value,year,currency,self.dictionaries["ratedf"])
+                                        else:
+                                            pdb.set_trace()
+                                        # ["year","transaction_type","usd_disbursement","budget_or_transaction","budget_type","iati_identifier"]
+                                        row = [year,transaction_type_code,converted_value,b_or_t,budget_type,iati_identifier]
+                                        meta = {"row":row,"time_range":time_range,"budget_type":budget_type}
+                                        budget_output.append(meta)
+                    if len(budget_output)>1:
+                        overlaps = []
+                        spoiled = False
+                        keep_indexes = range(0,len(budget_output))
+                        #All possible combinations of 2
+                        for i in range(0,len(budget_output)):
+                            if i+1 < len(budget_output):
+                                for j in range(i+1,len(budget_output)):
+                                    first_budget = budget_output[i]
+                                    second_budget = budget_output[j]
+                                    if second_budget["time_range"]["end"]<=first_budget["time_range"]["end"] and second_budget["time_range"]["end"]>=first_budget["time_range"]["start"]:
+                                        overlaps.append((i,j))
+                                        if i in keep_indexes:
+                                            keep_indexes.remove(i)
+                                        if j in keep_indexes:
+                                            keep_indexes.remove(j)
+                                    elif second_budget["time_range"]["start"]>=first_budget["time_range"]["start"] and second_budget["time_range"]["start"]<=first_budget["time_range"]["end"]:
+                                        overlaps.append((i,j))
+                                        if i in keep_indexes:
+                                            keep_indexes.remove(i)
+                                        if j in keep_indexes:
+                                            keep_indexes.remove(j)
+                        if len(overlaps)>1:
+                            for i, j in overlaps:
+                                #If we've happened to put them back in the queue, take them out
+                                if i in keep_indexes:
+                                    keep_indexes.remove(i)
+                                if j in keep_indexes:
+                                    keep_indexes.remove(j)
+                                budget1 = budget_output[i]
+                                budget2 = budget_output[j]
+                                #Only keep overlaps if one is revised and one is original
+                                if budget1["budget_type"]=="1" and budget2["budget_type"]=="2":
+                                    keep_indexes.append(j)
+                                elif budget1["budget_type"]=="2" and budget2["budget_type"]=="1":
+                                    keep_indexes.append(i)
+                                elif budget1["budget_type"]==budget2["budget_type"]:
+                                    spoiled = True
+                        if not spoiled:
+                            for keep_index in keep_indexes:
+                                output.append(budget_output[keep_index]["row"])
+                    elif len(budget_output)==1:
+                        #only one budget
+                        output.append(budget_output[0]["row"])
 
         return output
