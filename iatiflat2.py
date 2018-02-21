@@ -1,5 +1,8 @@
 import progressbar
 from lxml import etree
+import datetime
+import dateutil
+import pdb
 
 #Two dimension exchange rate dictionary. Access exchange rates by currency and year like ratedf[currencyCode][year]
 ratedf = {																																												
@@ -677,6 +680,7 @@ class IatiFlat(object):
                                     output.append(row)
                     
                 #Loop through budgets, and capture as close equivalents as we can to transactions
+                budget_output = []
                 has_budget = "budget" in child_tags
                 if has_budget:
                     budgets = activity.findall("budget")
@@ -688,84 +692,223 @@ class IatiFlat(object):
                             budget_type = None
                             
                         transaction_date = default_first(budget.xpath("period-start/@iso-date"))
-                        year = int(transaction_date[:4]) if transaction_date is not None else None
-                            
-                        value = default_first(budget.xpath("value/text()"))
+                        transaction_date_end = default_first(budget.xpath("period-end/@iso-date"))
+                        time_range = {}
                         try:
-                            value = float(value.replace(" ", "")) if value is not None else None
-                        except ValueError:
-                            value = None
-                        value_date = default_first(budget.xpath("value/@value-date"))
-                        currency = default_first(budget.xpath("value/@currency"))
-                        currency = replace_default_if_none(currency,defaults["default-currency"])
+                            time_range["start"] = dateutil.parser.parse(transaction_date)
+                            time_range["end"] = dateutil.parser.parse(transaction_date_end)
+                        except (TypeError,ValueError) as error:
+                            time_range["start"] = None
+                            time_range["end"] = None
+                        if time_range["start"] is not None:
+                            time_range["length"] = time_range["end"]-time_range["start"]
+                            if time_range["length"]<datetime.timedelta(370):
+                                year = time_range["start"].year
+                                    
+                                value = default_first(budget.xpath("value/text()"))
+                                try:
+                                    value = float(value.replace(" ", "")) if value is not None else None
+                                except ValueError:
+                                    value = None
+                                value_date = default_first(budget.xpath("value/@value-date"))
+                                currency = default_first(budget.xpath("value/@currency"))
+                                currency = replace_default_if_none(currency,defaults["default-currency"])
+                                
+                                flow_type_code = defaults["default-flow-type"]
+                                
+                                finance_type_code = defaults["default-finance-type"]
+                                
+                                aid_type_code = defaults["default-aid-type"]
+                                
+                                category = None
+                                disbursement_channel_code = None
+                                b_or_t = "Budget"
                         
-                        flow_type_code = defaults["default-flow-type"]
-                        
-                        finance_type_code = defaults["default-finance-type"]
-                        
-                        aid_type_code = defaults["default-aid-type"]
-                        
-                        category = None
-                        disbursement_channel_code = None
-                        b_or_t = "Budget"
-                
-                        if value>0:
-                            if use_activity_recipients:
-                                if use_activity_sectors:
+                                if value>0:
+                                    budget_data = {
+                                        "use_activity_recipients":use_activity_recipients
+                                        ,"use_activity_sectors":use_activity_sectors
+                                        ,"activity_recipients":activity_recipients
+                                        ,"activity_sectors":activity_sectors
+                                        ,"transaction_recipients":transaction_recipients
+                                        ,"transaction_sectors":transaction_sectors
+                                        ,"value":value
+                                        ,"year":year
+                                        ,"currency":currency
+                                        ,"flow_type_code":flow_type_code
+                                        ,"category":category
+                                        ,"finance_type_code":finance_type_code
+                                        ,"aid_type_code":aid_type_code
+                                        ,"short_description":short_description
+                                        ,"channel_code":channel_code
+                                        ,"long_description":long_description
+                                        ,"ftc":ftc
+                                        ,"pba":pba
+                                        ,"b_or_t":b_or_t
+                                        ,"budget_type":budget_type
+                                        ,"iati_identifier":iati_identifier
+                                        ,"incoming":incoming
+                                    }
+                                    meta = {"time_range":time_range,"budget_type":budget_type,"data":budget_data}
+                                    budget_output.append(meta)
+                if len(budget_output)>1:
+                    overlaps = []
+                    spoiled = False
+                    keep_indexes = range(0,len(budget_output))
+                    #All possible combinations of 2
+                    for i in range(0,len(budget_output)):
+                        if i+1 < len(budget_output):
+                            for j in range(i+1,len(budget_output)):
+                                first_budget = budget_output[i]
+                                second_budget = budget_output[j]
+                                if second_budget["time_range"]["end"]<=first_budget["time_range"]["end"] and second_budget["time_range"]["end"]>=first_budget["time_range"]["start"]:
+                                    overlaps.append((i,j))
+                                    if i in keep_indexes:
+                                        keep_indexes.remove(i)
+                                    if j in keep_indexes:
+                                        keep_indexes.remove(j)
+                                elif second_budget["time_range"]["start"]>=first_budget["time_range"]["start"] and second_budget["time_range"]["start"]<=first_budget["time_range"]["end"]:
+                                    overlaps.append((i,j))
+                                    if i in keep_indexes:
+                                        keep_indexes.remove(i)
+                                    if j in keep_indexes:
+                                        keep_indexes.remove(j)
+                    if len(overlaps)>1:
+                        for i, j in overlaps:
+                            #If we've happened to put them back in the queue, take them out
+                            if i in keep_indexes:
+                                keep_indexes.remove(i)
+                            if j in keep_indexes:
+                                keep_indexes.remove(j)
+                            budget1 = budget_output[i]
+                            budget2 = budget_output[j]
+                            #Only keep overlaps if one is revised and one is original
+                            if budget1["budget_type"]=="1" and budget2["budget_type"]=="2":
+                                keep_indexes.append(j)
+                            elif budget1["budget_type"]=="2" and budget2["budget_type"]=="1":
+                                keep_indexes.append(i)
+                            elif budget1["budget_type"]==budget2["budget_type"]:
+                                spoiled = True
+                    if not spoiled:
+                        for keep_index in keep_indexes:
+                            vb = budget_output[keep_index]
+                            if vb["data"]["use_activity_recipients"]:
+                                if vb["data"]["use_activity_sectors"]:
                                     #Activity recipients and sectors
-                                    for activity_recipient_code in activity_recipients.keys():
-                                        activity_recipient_percentage = activity_recipients[activity_recipient_code]
-                                        for activity_sector_code in activity_sectors.keys():
-                                            activity_sector_percentage = activity_sectors[activity_sector_code]
-                                            calculated_value = value*activity_recipient_percentage*activity_sector_percentage if (activity_recipient_percentage is not None and activity_sector_percentage is not None) else None
-                                            converted_value = convert_usd(calculated_value,year,currency,self.dictionaries["ratedf"])
+                                    for activity_recipient_code in vb["data"]["activity_recipients"].keys():
+                                        activity_recipient_percentage = vb["data"]["activity_recipients"][activity_recipient_code]
+                                        for activity_sector_code in vb["data"]["activity_sectors"].keys():
+                                            activity_sector_percentage = vb["data"]["activity_sectors"][activity_sector_code]
+                                            calculated_value = vb["data"]["value"]*activity_recipient_percentage*activity_sector_percentage if (activity_recipient_percentage is not None and activity_sector_percentage is not None) else None
+                                            converted_value = convert_usd(calculated_value,vb["data"]["year"],vb["data"]["currency"],self.dictionaries["ratedf"])
                                             recip = recode_if_not_none(activity_recipient_code,self.dictionaries["recipient_dictionary"])
                                             to_di_id = activity_recipient_code
                                             sec_code = activity_sector_code
                                             pur_code = sec_code[:3] if sec_code is not None else None
-                                            row = [year,recip,to_di_id,flow_type_code,category,finance_type_code,aid_type_code,converted_value,short_description,pur_code,sec_code,channel_code,long_description,ftc,pba,b_or_t,budget_type,iati_identifier,incoming]
+                                            row = [vb["data"]["year"],recip,to_di_id,vb["data"]["flow_type_code"],vb["data"]["category"],vb["data"]["finance_type_code"],vb["data"]["aid_type_code"],converted_value,vb["data"]["short_description"],pur_code,sec_code,vb["data"]["channel_code"],vb["data"]["long_description"],vb["data"]["ftc"],vb["data"]["pba"],vb["data"]["b_or_t"],vb["data"]["budget_type"],vb["data"]["iati_identifier"],vb["data"]["incoming"]]
                                             output.append(row)
                                 else:
                                     #Just activity recipients
-                                    for activity_recipient_code in activity_recipients.keys():
-                                        activity_recipient_percentage = activity_recipients[activity_recipient_code]
-                                        for transaction_sector_code in transaction_sectors.keys():
-                                            transaction_sector_percentage = transaction_sectors[transaction_sector_code]
-                                            calculated_value = value*activity_recipient_percentage*transaction_sector_percentage if (activity_recipient_percentage is not None and transaction_sector_percentage is not None) else None
-                                            converted_value = convert_usd(calculated_value,year,currency,self.dictionaries["ratedf"])
+                                    for activity_recipient_code in vb["data"]["activity_recipients"].keys():
+                                        activity_recipient_percentage = vb["data"]["activity_recipients"][activity_recipient_code]
+                                        for transaction_sector_code in vb["data"]["transaction_sectors"].keys():
+                                            transaction_sector_percentage = vb["data"]["transaction_sectors"][transaction_sector_code]
+                                            calculated_value = vb["data"]["value"]*activity_recipient_percentage*transaction_sector_percentage if (activity_recipient_percentage is not None and transaction_sector_percentage is not None) else None
+                                            converted_value = convert_usd(calculated_value,vb["data"]["year"],vb["data"]["currency"],self.dictionaries["ratedf"])
                                             recip = recode_if_not_none(activity_recipient_code,self.dictionaries["recipient_dictionary"])
                                             to_di_id = activity_recipient_code
                                             sec_code = transaction_sector_code
                                             pur_code = sec_code[:3] if sec_code is not None else None
-                                            row = [year,recip,to_di_id,flow_type_code,category,finance_type_code,aid_type_code,converted_value,short_description,pur_code,sec_code,channel_code,long_description,ftc,pba,b_or_t,budget_type,iati_identifier,incoming]
+                                            row = [vb["data"]["year"],recip,to_di_id,vb["data"]["flow_type_code"],vb["data"]["category"],vb["data"]["finance_type_code"],vb["data"]["aid_type_code"],converted_value,vb["data"]["short_description"],pur_code,sec_code,vb["data"]["channel_code"],vb["data"]["long_description"],vb["data"]["ftc"],vb["data"]["pba"],vb["data"]["b_or_t"],vb["data"]["budget_type"],vb["data"]["iati_identifier"],vb["data"]["incoming"]]
                                             output.append(row)
                             else:
-                                if use_activity_sectors:
+                                if vb["data"]["use_activity_sectors"]:
                                     #Just activity sectors
-                                    for transaction_recipient_code in transaction_recipients.keys():
-                                        transaction_recipient_percentage = transaction_recipients[transaction_recipient_code]
-                                        for activity_sector_code in activity_sectors.keys():
-                                            activity_sector_percentage = activity_sectors[activity_sector_code]
-                                            calculated_value = value*transaction_recipient_percentage*activity_sector_percentage if (transaction_recipient_percentage is not None and activity_sector_percentage is not None) else None
-                                            converted_value = convert_usd(calculated_value,year,currency,self.dictionaries["ratedf"])
+                                    for transaction_recipient_code in vb["data"]["transaction_recipients"].keys():
+                                        transaction_recipient_percentage = vb["data"]["transaction_recipients"][transaction_recipient_code]
+                                        for activity_sector_code in vb["data"]["activity_sectors"].keys():
+                                            activity_sector_percentage = vb["data"]["activity_sectors"][activity_sector_code]
+                                            calculated_value = vb["data"]["value"]*transaction_recipient_percentage*activity_sector_percentage if (transaction_recipient_percentage is not None and activity_sector_percentage is not None) else None
+                                            converted_value = convert_usd(calculated_value,vb["data"]["year"],vb["data"]["currency"],self.dictionaries["ratedf"])
                                             recip = recode_if_not_none(transaction_recipient_code,self.dictionaries["recipient_dictionary"])
                                             to_di_id = transaction_recipient_code
                                             sec_code = activity_sector_code
                                             pur_code = sec_code[:3] if sec_code is not None else None
-                                            row = [year,recip,to_di_id,flow_type_code,category,finance_type_code,aid_type_code,converted_value,short_description,pur_code,sec_code,channel_code,long_description,ftc,pba,b_or_t,budget_type,iati_identifier,incoming]
+                                            row = [vb["data"]["year"],recip,to_di_id,vb["data"]["flow_type_code"],vb["data"]["category"],vb["data"]["finance_type_code"],vb["data"]["aid_type_code"],converted_value,vb["data"]["short_description"],pur_code,sec_code,vb["data"]["channel_code"],vb["data"]["long_description"],vb["data"]["ftc"],vb["data"]["pba"],vb["data"]["b_or_t"],vb["data"]["budget_type"],vb["data"]["iati_identifier"],vb["data"]["incoming"]]
                                             output.append(row)
                                 else:
                                     #Neither activity recipients nor sectors
-                                    for transaction_recipient_code in transaction_recipients.keys():
-                                        transaction_recipient_percentage = transaction_recipients[transaction_recipient_code]
-                                        for transaction_sector_code in transaction_sectors.keys():
-                                            transaction_sector_percentage = transaction_sectors[transaction_sector_code]
-                                            calculated_value = value*transaction_recipient_percentage*transaction_sector_percentage if (transaction_recipient_percentage is not None and transaction_sector_percentage is not None) else None
-                                            converted_value = convert_usd(calculated_value,year,currency,self.dictionaries["ratedf"])
+                                    for transaction_recipient_code in vb["data"]["transaction_recipients"].keys():
+                                        transaction_recipient_percentage = vb["data"]["transaction_recipients"][transaction_recipient_code]
+                                        for transaction_sector_code in vb["data"]["transaction_sectors"].keys():
+                                            transaction_sector_percentage = vb["data"]["transaction_sectors"][transaction_sector_code]
+                                            calculated_value = vb["data"]["value"]*transaction_recipient_percentage*transaction_sector_percentage if (transaction_recipient_percentage is not None and transaction_sector_percentage is not None) else None
+                                            converted_value = convert_usd(calculated_value,vb["data"]["year"],vb["data"]["currency"],self.dictionaries["ratedf"])
                                             recip = recode_if_not_none(transaction_recipient_code,self.dictionaries["recipient_dictionary"])
                                             to_di_id = transaction_recipient_code
                                             sec_code = transaction_sector_code
                                             pur_code = sec_code[:3] if sec_code is not None else None
-                                            row = [year,recip,to_di_id,flow_type_code,category,finance_type_code,aid_type_code,converted_value,short_description,pur_code,sec_code,channel_code,long_description,ftc,pba,b_or_t,budget_type,iati_identifier,incoming]
+                                            row = [vb["data"]["year"],recip,to_di_id,vb["data"]["flow_type_code"],vb["data"]["category"],vb["data"]["finance_type_code"],vb["data"]["aid_type_code"],converted_value,vb["data"]["short_description"],pur_code,sec_code,vb["data"]["channel_code"],vb["data"]["long_description"],vb["data"]["ftc"],vb["data"]["pba"],vb["data"]["b_or_t"],vb["data"]["budget_type"],vb["data"]["iati_identifier"],vb["data"]["incoming"]]
                                             output.append(row)
+                elif len(budget_output)==1:
+                    #only one budget
+                    vb = budget_output[0]
+                    if vb["data"]["use_activity_recipients"]:
+                        if vb["data"]["use_activity_sectors"]:
+                            #Activity recipients and sectors
+                            for activity_recipient_code in vb["data"]["activity_recipients"].keys():
+                                activity_recipient_percentage = vb["data"]["activity_recipients"][activity_recipient_code]
+                                for activity_sector_code in vb["data"]["activity_sectors"].keys():
+                                    activity_sector_percentage = vb["data"]["activity_sectors"][activity_sector_code]
+                                    calculated_value = vb["data"]["value"]*activity_recipient_percentage*activity_sector_percentage if (activity_recipient_percentage is not None and activity_sector_percentage is not None) else None
+                                    converted_value = convert_usd(calculated_value,vb["data"]["year"],vb["data"]["currency"],self.dictionaries["ratedf"])
+                                    recip = recode_if_not_none(activity_recipient_code,self.dictionaries["recipient_dictionary"])
+                                    to_di_id = activity_recipient_code
+                                    sec_code = activity_sector_code
+                                    pur_code = sec_code[:3] if sec_code is not None else None
+                                    row = [vb["data"]["year"],recip,to_di_id,vb["data"]["flow_type_code"],vb["data"]["category"],vb["data"]["finance_type_code"],vb["data"]["aid_type_code"],converted_value,vb["data"]["short_description"],pur_code,sec_code,vb["data"]["channel_code"],vb["data"]["long_description"],vb["data"]["ftc"],vb["data"]["pba"],vb["data"]["b_or_t"],vb["data"]["budget_type"],vb["data"]["iati_identifier"],vb["data"]["incoming"]]
+                                    output.append(row)
+                        else:
+                            #Just activity recipients
+                            for activity_recipient_code in vb["data"]["activity_recipients"].keys():
+                                activity_recipient_percentage = vb["data"]["activity_recipients"][activity_recipient_code]
+                                for transaction_sector_code in vb["data"]["transaction_sectors"].keys():
+                                    transaction_sector_percentage = vb["data"]["transaction_sectors"][transaction_sector_code]
+                                    calculated_value = vb["data"]["value"]*activity_recipient_percentage*transaction_sector_percentage if (activity_recipient_percentage is not None and transaction_sector_percentage is not None) else None
+                                    converted_value = convert_usd(calculated_value,vb["data"]["year"],vb["data"]["currency"],self.dictionaries["ratedf"])
+                                    recip = recode_if_not_none(activity_recipient_code,self.dictionaries["recipient_dictionary"])
+                                    to_di_id = activity_recipient_code
+                                    sec_code = transaction_sector_code
+                                    pur_code = sec_code[:3] if sec_code is not None else None
+                                    row = [vb["data"]["year"],recip,to_di_id,vb["data"]["flow_type_code"],vb["data"]["category"],vb["data"]["finance_type_code"],vb["data"]["aid_type_code"],converted_value,vb["data"]["short_description"],pur_code,sec_code,vb["data"]["channel_code"],vb["data"]["long_description"],vb["data"]["ftc"],vb["data"]["pba"],vb["data"]["b_or_t"],vb["data"]["budget_type"],vb["data"]["iati_identifier"],vb["data"]["incoming"]]
+                                    output.append(row)
+                    else:
+                        if vb["data"]["use_activity_sectors"]:
+                            #Just activity sectors
+                            for transaction_recipient_code in vb["data"]["transaction_recipients"].keys():
+                                transaction_recipient_percentage = vb["data"]["transaction_recipients"][transaction_recipient_code]
+                                for activity_sector_code in vb["data"]["activity_sectors"].keys():
+                                    activity_sector_percentage = vb["data"]["activity_sectors"][activity_sector_code]
+                                    calculated_value = vb["data"]["value"]*transaction_recipient_percentage*activity_sector_percentage if (transaction_recipient_percentage is not None and activity_sector_percentage is not None) else None
+                                    converted_value = convert_usd(calculated_value,vb["data"]["year"],vb["data"]["currency"],self.dictionaries["ratedf"])
+                                    recip = recode_if_not_none(transaction_recipient_code,self.dictionaries["recipient_dictionary"])
+                                    to_di_id = transaction_recipient_code
+                                    sec_code = activity_sector_code
+                                    pur_code = sec_code[:3] if sec_code is not None else None
+                                    row = [vb["data"]["year"],recip,to_di_id,vb["data"]["flow_type_code"],vb["data"]["category"],vb["data"]["finance_type_code"],vb["data"]["aid_type_code"],converted_value,vb["data"]["short_description"],pur_code,sec_code,vb["data"]["channel_code"],vb["data"]["long_description"],vb["data"]["ftc"],vb["data"]["pba"],vb["data"]["b_or_t"],vb["data"]["budget_type"],vb["data"]["iati_identifier"],vb["data"]["incoming"]]
+                                    output.append(row)
+                        else:
+                            #Neither activity recipients nor sectors
+                            for transaction_recipient_code in vb["data"]["transaction_recipients"].keys():
+                                transaction_recipient_percentage = vb["data"]["transaction_recipients"][transaction_recipient_code]
+                                for transaction_sector_code in vb["data"]["transaction_sectors"].keys():
+                                    transaction_sector_percentage = vb["data"]["transaction_sectors"][transaction_sector_code]
+                                    calculated_value = vb["data"]["value"]*transaction_recipient_percentage*transaction_sector_percentage if (transaction_recipient_percentage is not None and transaction_sector_percentage is not None) else None
+                                    converted_value = convert_usd(calculated_value,vb["data"]["year"],vb["data"]["currency"],self.dictionaries["ratedf"])
+                                    recip = recode_if_not_none(transaction_recipient_code,self.dictionaries["recipient_dictionary"])
+                                    to_di_id = transaction_recipient_code
+                                    sec_code = transaction_sector_code
+                                    pur_code = sec_code[:3] if sec_code is not None else None
+                                    row = [vb["data"]["year"],recip,to_di_id,vb["data"]["flow_type_code"],vb["data"]["category"],vb["data"]["finance_type_code"],vb["data"]["aid_type_code"],converted_value,vb["data"]["short_description"],pur_code,sec_code,vb["data"]["channel_code"],vb["data"]["long_description"],vb["data"]["ftc"],vb["data"]["pba"],vb["data"]["b_or_t"],vb["data"]["budget_type"],vb["data"]["iati_identifier"],vb["data"]["incoming"]]
+                                    output.append(row)
         return output

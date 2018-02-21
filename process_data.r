@@ -195,6 +195,9 @@ trans.recip.max <- merge(trans.recip.max,trans.recip.donor.tab,all.x=TRUE)
 setnames(trans.recip.max,"year","iati.year")
 setnames(trans.recip.max,"value","iati.value")
 
+exclude <- c("abt","akfuk73","dec-uk","palladium","plan_usa","spuk","wwf-uk")
+trans.recip.max <- subset(trans.recip.max,!(publisher %in% exclude))
+
 crs <- read_csv("crs.csv")
 
 crs <- subset(crs,Recipient %in% iati_members)
