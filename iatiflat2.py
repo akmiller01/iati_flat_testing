@@ -512,7 +512,7 @@ class IatiFlat(object):
                 if code is not None:
                     activity_recipients[code] = float(percentage) if percentage is not None else None
                     
-            #If percentages are greater than 100, rescale to 100. Also divide by 100 to make sure percentages run 0 to 1.00
+            #If percentages are greater than 100, rescale to 100.
             activity_sector_percentage = max(activity_sector_percentage,100.0)
             activity_recipient_percentage = max(activity_recipient_percentage,100.0)
             
@@ -725,6 +725,7 @@ class IatiFlat(object):
                                 b_or_t = "Budget"
                         
                                 if value>0:
+                                    #Pass budget data into a separate array for time range overlap
                                     budget_data = {
                                         "use_activity_recipients":use_activity_recipients
                                         ,"use_activity_sectors":use_activity_sectors
@@ -751,6 +752,7 @@ class IatiFlat(object):
                                     }
                                     meta = {"time_range":time_range,"budget_type":budget_type,"data":budget_data}
                                     budget_output.append(meta)
+                #If we have two or more budgets
                 if len(budget_output)>1:
                     overlaps = []
                     spoiled = False
@@ -773,6 +775,7 @@ class IatiFlat(object):
                                         keep_indexes.remove(i)
                                     if j in keep_indexes:
                                         keep_indexes.remove(j)
+                    #If any of them overlap
                     if len(overlaps)>1:
                         for i, j in overlaps:
                             #If we've happened to put them back in the queue, take them out
@@ -789,6 +792,7 @@ class IatiFlat(object):
                                 keep_indexes.append(i)
                             elif budget1["budget_type"]==budget2["budget_type"]:
                                 spoiled = True
+                    #If there are any overlapping budgets with the same budget type, spoil the whole activity and throw away the budgets
                     if not spoiled:
                         for keep_index in keep_indexes:
                             vb = budget_output[keep_index]
